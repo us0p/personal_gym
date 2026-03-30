@@ -47,7 +47,19 @@ class Database {
 			case 1:
 				db.createObjectStore('users', { keyPath: 'username' });
 				db.createObjectStore('workout', { keyPath: 'name' });
+				db.createObjectStore('workoutGroup', { keyPath: 'name' });
+				db.createObjectStore('set', { keyPath: 'id', autoIncrement: true });
 		}
+	}
+
+	public async addToObjectStore(storeName: string, value: object): Promise<void> {
+		return new Promise((res, rej) => {
+			const tx = this.db.transaction(storeName, 'readwrite')
+			tx.onerror = () => rej(new DBError(tx.error?.message || 'Error while creating transaction'));
+			tx.oncomplete = () => res()
+			const objectStore = tx.objectStore(storeName)
+			objectStore.add(value)
+		})
 	}
 }
 
