@@ -4,6 +4,7 @@ import "./globals.css";
 import { UserProvider } from "./context/user-context";
 import Nav from "./components/nav";
 import SwRegister from "./components/sw-register";
+import PwaInstallButton from "./components/pwa-install-button";
 
 const geistSans = Geist({
 	variable: "--font-geist-sans",
@@ -27,6 +28,7 @@ export default function RootLayout({
 	return (
 		<html lang="en" className={`${geistSans.variable} h-full`}>
 			<body className="bg-black text-white min-h-full antialiased">
+				<PwaInstallButton />
 				<UserProvider>
 					<div className="pb-16">{children}</div>
 					<Nav />
