@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import { UserProvider } from "./context/user-context";
 import Nav from "./components/nav";
+import SwRegister from "./components/sw-register";
 
 const geistSans = Geist({
 	variable: "--font-geist-sans",
@@ -12,6 +13,10 @@ const geistSans = Geist({
 export const metadata: Metadata = {
 	title: "Personal Gym",
 	description: "Track your training and evolution",
+};
+
+export const viewport: Viewport = {
+	themeColor: "#000000",
 };
 
 export default function RootLayout({
@@ -26,6 +31,7 @@ export default function RootLayout({
 					<div className="pb-16">{children}</div>
 					<Nav />
 				</UserProvider>
+				<SwRegister />
 			</body>
 		</html>
 	);
