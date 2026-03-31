@@ -1,0 +1,32 @@
+import { DATABASE_VERSION } from '../config';
+import migration001 from './001-initial_schema';
+import migration002 from './002-add_exercise_execution';
+import type { Migration } from './types';
+
+/**
+ * All registered migrations, sorted by version number.
+ *
+ * To add a new migration:
+ *   1. Create `NNN-description.ts` in this folder exporting a Migration.
+ *   2. Import it here and add it to the array below.
+ *   3. Bump DATABASE_VERSION in config.ts.
+ *
+ * The invariant check below will throw immediately if DATABASE_VERSION and the
+ * number of registered migrations disagree, catching the mistake before it
+ * reaches a real or test database.
+ */
+const migrations: Migration[] = [
+	migration001,
+	migration002,
+].sort((a, b) => a.version - b.version);
+
+if (migrations.length !== DATABASE_VERSION) {
+	throw new Error(
+		`DATABASE_VERSION mismatch: config.ts declares version ${DATABASE_VERSION} ` +
+		`but ${migrations.length} migration(s) are registered in migrations/index.ts. ` +
+		`Update both files together.`,
+	);
+}
+
+export { migrations };
+export type { Migration };

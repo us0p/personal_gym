@@ -1,0 +1,353 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { IDBFactory } from 'fake-indexeddb';
+import Database, { DBError } from '../database';
+import { migrations } from '../migrations';
+import { DATABASE_VERSION } from '../config';
+
+// Each test gets its own IDBFactory so there is no shared state between tests.
+let factory: IDBFactory;
+
+beforeEach(() => {
+	factory = new IDBFactory();
+});
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+async function storeExists(db: Database, storeName: string): Promise<boolean> {
+	try {
+		await db.getAll(storeName);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+// ─── Static config ───────────────────────────────────────────────────────────
+
+describe('config', () => {
+	it('DATABASE_VERSION is a positive integer', () => {
+		expect(Number.isInteger(DATABASE_VERSION)).toBe(true);
+		expect(DATABASE_VERSION).toBeGreaterThan(0);
+	});
+
+	it('DATABASE_VERSION matches the version of the last registered migration', () => {
+		const last = migrations[migrations.length - 1];
+		expect(last.version).toBe(DATABASE_VERSION);
+	});
+
+	it('mismatch guard is active — this file loaded, so config and registry agree', () => {
+		// migrations/index.ts throws at module load time when
+		// migrations.length !== DATABASE_VERSION.
+		// Reaching this line proves the guard passed; if it had thrown,
+		// the entire test module would have failed to import.
+		expect(migrations.length).toBe(DATABASE_VERSION);
+	});
+});
+
+// ─── Migration registry ──────────────────────────────────────────────────────
+
+describe('migrations registry', () => {
+	it('Database.latestVersion reflects DATABASE_VERSION', () => {
+		expect(Database.latestVersion).toBe(DATABASE_VERSION);
+	});
+
+	it('migrations are sorted in ascending version order', () => {
+		for (let i = 1; i < migrations.length; i++) {
+			expect(migrations[i].version).toBeGreaterThan(migrations[i - 1].version);
+		}
+	});
+
+	it('each migration has a version, description, and up() function', () => {
+		for (const m of migrations) {
+			expect(typeof m.version).toBe('number');
+			expect(m.version).toBeGreaterThan(0);
+			expect(typeof m.description).toBe('string');
+			expect(m.description.length).toBeGreaterThan(0);
+			expect(typeof m.up).toBe('function');
+		}
+	});
+});
+
+// ─── Schema — fresh install ──────────────────────────────────────────────────
+
+describe('fresh install (v0 → latest)', () => {
+	it('creates all required stores', async () => {
+		const db = await Database.createInstance(factory);
+
+		for (const store of ['users', 'workout', 'exercise', 'execution']) {
+			expect(await storeExists(db, store)).toBe(true);
+		}
+
+		db.close();
+	});
+
+	it('does NOT create legacy v1 stores', async () => {
+		const db = await Database.createInstance(factory);
+
+		for (const store of ['workoutGroup', 'set']) {
+			expect(await storeExists(db, store)).toBe(false);
+		}
+
+		db.close();
+	});
+
+	it('opening the same factory twice at the same version succeeds', async () => {
+		const db1 = await Database.createInstance(factory);
+		db1.close();
+
+		const db2 = await Database.createInstance(factory);
+		expect(await storeExists(db2, 'users')).toBe(true);
+		db2.close();
+	});
+});
+
+// ─── Migrations — incremental upgrades ──────────────────────────────────────
+
+describe('incremental migrations', () => {
+	it('migration 001 creates the v1 stores', async () => {
+		const db = await Database.createInstance(factory, 1);
+
+		for (const store of ['users', 'workout', 'workoutGroup', 'set']) {
+			expect(await storeExists(db, store)).toBe(true);
+		}
+		// exercise and execution do not exist yet
+		expect(await storeExists(db, 'exercise')).toBe(false);
+		expect(await storeExists(db, 'execution')).toBe(false);
+
+		db.close();
+	});
+
+	it('migration 002 removes legacy stores and adds exercise + execution', async () => {
+		// Simulate an existing client at v1
+		const dbV1 = await Database.createInstance(factory, 1);
+		dbV1.close();
+
+		// Upgrade the same database to v2
+		const dbV2 = await Database.createInstance(factory, 2);
+
+		expect(await storeExists(dbV2, 'workoutGroup')).toBe(false);
+		expect(await storeExists(dbV2, 'set')).toBe(false);
+		expect(await storeExists(dbV2, 'exercise')).toBe(true);
+		expect(await storeExists(dbV2, 'execution')).toBe(true);
+
+		// v1 stores that should survive
+		expect(await storeExists(dbV2, 'users')).toBe(true);
+		expect(await storeExists(dbV2, 'workout')).toBe(true);
+
+		dbV2.close();
+	});
+
+	it('a client that skips v1 and opens directly at v2 gets all stores', async () => {
+		// Simulates a brand-new install where the app is already at v2
+		const db = await Database.createInstance(factory, 2);
+
+		for (const store of ['users', 'workout', 'exercise', 'execution']) {
+			expect(await storeExists(db, store)).toBe(true);
+		}
+		expect(await storeExists(db, 'workoutGroup')).toBe(false);
+		expect(await storeExists(db, 'set')).toBe(false);
+
+		db.close();
+	});
+
+	it('upgrading from v1 to latest applies only the missing migrations', async () => {
+		// Open at v1
+		const dbV1 = await Database.createInstance(factory, 1);
+		// Seed a user so we can verify data survives the migration
+		await dbV1.add('users', { username: 'alice', sex: 'FEMALE', age: 28, weight: 60, height: 165 });
+		dbV1.close();
+
+		// Open at latest
+		const dbLatest = await Database.createInstance(factory);
+
+		// Data must be preserved
+		const user = await dbLatest.get<{ username: string }>('users', 'alice');
+		expect(user?.username).toBe('alice');
+
+		// New stores must exist
+		expect(await storeExists(dbLatest, 'exercise')).toBe(true);
+		expect(await storeExists(dbLatest, 'execution')).toBe(true);
+
+		dbLatest.close();
+	});
+});
+
+// ─── CRUD operations ─────────────────────────────────────────────────────────
+
+describe('add()', () => {
+	let db: Database;
+
+	beforeEach(async () => {
+		db = await Database.createInstance(factory);
+	});
+
+	it('inserts a record that can be retrieved', async () => {
+		await db.add('users', { username: 'bob', sex: 'MALE', age: 30, weight: 80, height: 180 });
+		const found = await db.get<{ username: string }>('users', 'bob');
+		expect(found?.username).toBe('bob');
+		db.close();
+	});
+
+	it('rejects with DBError when the key already exists', async () => {
+		await db.add('users', { username: 'carol', sex: 'FEMALE', age: 25, weight: 55, height: 160 });
+		await expect(
+			db.add('users', { username: 'carol', sex: 'FEMALE', age: 25, weight: 55, height: 160 }),
+		).rejects.toBeInstanceOf(DBError);
+		db.close();
+	});
+
+	it('rejects when the object store does not exist', async () => {
+		await expect(
+			db.add('nonExistentStore', { id: 1 }),
+		).rejects.toBeInstanceOf(DBError);
+		db.close();
+	});
+
+	it('addToObjectStore() is a backwards-compatible alias for add()', async () => {
+		await expect(
+			db.addToObjectStore('users', { username: 'legacy', sex: 'MALE', age: 20, weight: 70, height: 175 }),
+		).resolves.toBeUndefined();
+		db.close();
+	});
+});
+
+describe('put()', () => {
+	let db: Database;
+
+	beforeEach(async () => {
+		db = await Database.createInstance(factory);
+	});
+
+	it('inserts a record when the key does not exist (upsert)', async () => {
+		await db.put('users', { username: 'dave', sex: 'MALE', age: 35, weight: 90, height: 185 });
+		const found = await db.get<{ username: string }>('users', 'dave');
+		expect(found?.username).toBe('dave');
+		db.close();
+	});
+
+	it('updates an existing record', async () => {
+		await db.add('users', { username: 'eve', sex: 'FEMALE', age: 22, weight: 58, height: 162 });
+		await db.put('users', { username: 'eve', sex: 'FEMALE', age: 23, weight: 59, height: 162 });
+		const found = await db.get<{ username: string; age: number }>('users', 'eve');
+		expect(found?.age).toBe(23);
+		db.close();
+	});
+});
+
+describe('get()', () => {
+	let db: Database;
+
+	beforeEach(async () => {
+		db = await Database.createInstance(factory);
+	});
+
+	it('returns the record for a known key', async () => {
+		await db.add('workout', { name: 'Push Day', exercises: ['Bench Press'] });
+		const found = await db.get<{ name: string; exercises: string[] }>('workout', 'Push Day');
+		expect(found?.name).toBe('Push Day');
+		expect(found?.exercises).toEqual(['Bench Press']);
+		db.close();
+	});
+
+	it('returns undefined for a key that does not exist', async () => {
+		const result = await db.get('users', 'nobody');
+		expect(result).toBeUndefined();
+		db.close();
+	});
+});
+
+describe('getAll()', () => {
+	let db: Database;
+
+	beforeEach(async () => {
+		db = await Database.createInstance(factory);
+	});
+
+	it('returns an empty array for an empty store', async () => {
+		const result = await db.getAll('users');
+		expect(result).toEqual([]);
+		db.close();
+	});
+
+	it('returns all inserted records', async () => {
+		await db.add('exercise', { name: 'Squat', bodyRegion: ['Quads', 'Glutes'], type: 'push' });
+		await db.add('exercise', { name: 'Deadlift', bodyRegion: ['Back', 'Hamstrings'], type: 'pull' });
+		const result = await db.getAll<{ name: string }>('exercise');
+		expect(result).toHaveLength(2);
+		const names = result.map((r) => r.name);
+		expect(names).toContain('Squat');
+		expect(names).toContain('Deadlift');
+		db.close();
+	});
+
+	it('rejects when the store does not exist', async () => {
+		await expect(db.getAll('ghost')).rejects.toBeInstanceOf(DBError);
+		db.close();
+	});
+});
+
+describe('delete()', () => {
+	let db: Database;
+
+	beforeEach(async () => {
+		db = await Database.createInstance(factory);
+	});
+
+	it('removes an existing record', async () => {
+		await db.add('users', { username: 'frank', sex: 'MALE', age: 40, weight: 85, height: 178 });
+		await db.delete('users', 'frank');
+		const found = await db.get('users', 'frank');
+		expect(found).toBeUndefined();
+		db.close();
+	});
+
+	it('is silent when the key does not exist', async () => {
+		await expect(db.delete('users', 'nobody')).resolves.toBeUndefined();
+		db.close();
+	});
+});
+
+describe('autoIncrement key (execution store)', () => {
+	let db: Database;
+
+	beforeEach(async () => {
+		db = await Database.createInstance(factory);
+	});
+
+	it('assigns an auto-incremented id on add()', async () => {
+		await db.add('execution', {
+			workoutName: 'Push Day',
+			exerciseName: 'Bench Press',
+			repNumber: 10,
+			timestamp: new Date().toISOString(),
+		});
+		await db.add('execution', {
+			workoutName: 'Push Day',
+			exerciseName: 'Overhead Press',
+			repNumber: 8,
+			timestamp: new Date().toISOString(),
+		});
+
+		const all = await db.getAll<{ id: number; exerciseName: string }>('execution');
+		expect(all).toHaveLength(2);
+		expect(all[0].id).toBe(1);
+		expect(all[1].id).toBe(2);
+		db.close();
+	});
+
+	it('can delete a record by its auto-incremented id', async () => {
+		await db.add('execution', {
+			workoutName: 'Leg Day',
+			exerciseName: 'Squat',
+			repNumber: 5,
+			timestamp: new Date().toISOString(),
+		});
+
+		const [entry] = await db.getAll<{ id: number }>('execution');
+		await db.delete('execution', entry.id);
+
+		const remaining = await db.getAll('execution');
+		expect(remaining).toHaveLength(0);
+		db.close();
+	});
+});
