@@ -34,10 +34,34 @@ Here's a list of the available object stores, their purposes and their relations
 - exercise:
     - name: string [unique]
     - bodyRegion: Array<string>
-    - type: option(push/pull)
+    - type: option(push/pull/cardio)
 
 - execution:
     - workoutName: string
     - exerciseName: string
     - repNumber: number
     - timestamp: date
+
+## Notes
+- It doesn't make sense to have multiple users, no body is going to share 
+the phone of computer
+    - It make a lot more sense to store user data transition, specially weight.
+    - Instead of storing someone's age, store their birthday.
+- workout:
+    - can be associated with a day in the week.
+    - exercise log should be accessible within a workout page.
+    - there should be a "START/END" button, that stores the start and end 
+    time of a workout session (good for metrics).
+    - if we could store the duration of each series would be very good to 
+    determine the TIME UNDER STRESS in each exercise and the muscular impact.
+    Maybe voice command?
+
+### Ideas
+- Add descriptions to exercises
+- Animated images showing how to execute exercise properly
+- Central hub for exercises
+    - users submit exercises for approval, ai agent analyses requests and 
+    adds to the public dataset if certain level of quality is achieved 
+    in the exercise description.
+    - using browser ai capabilities, we could provide video analysis to 
+    extract and generate new exercises.
