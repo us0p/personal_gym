@@ -4,6 +4,7 @@ interface Execution {
 	exerciseName: string;
 	repNumber: number;
 	timestamp: string;
+	username: string;
 }
 
 export type { Execution };

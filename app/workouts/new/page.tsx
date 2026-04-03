@@ -4,11 +4,27 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Database from '../../core/infra/database';
-import { Workout } from '../../core/entities/workout/workout';
+import { Workout, WeekDay } from '../../core/entities/workout/workout';
+import { WorkoutRepository } from '../../core/entities/workout/workout-repository';
 import { Exercise } from '../../core/entities/exercise/exercise';
+import { useUser } from '../../context/user-context';
+
+const inputClass = "w-full bg-zinc-900 text-white rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-zinc-600 placeholder:text-zinc-500 text-base";
+const selectClass = `${inputClass} appearance-none`;
+
+const WEEK_DAYS: { value: WeekDay; label: string }[] = [
+	{ value: WeekDay.MONDAY, label: 'Monday' },
+	{ value: WeekDay.TUESDAY, label: 'Tuesday' },
+	{ value: WeekDay.WEDNESDAY, label: 'Wednesday' },
+	{ value: WeekDay.THURSDAY, label: 'Thursday' },
+	{ value: WeekDay.FRIDAY, label: 'Friday' },
+	{ value: WeekDay.SATURDAY, label: 'Saturday' },
+	{ value: WeekDay.SUNDAY, label: 'Sunday' },
+];
 
 export default function NewWorkoutPage() {
 	const router = useRouter();
+	const { user } = useUser();
 	const [exercises, setExercises] = useState<Exercise[]>([]);
 
 	useEffect(() => {
@@ -21,14 +37,23 @@ export default function NewWorkoutPage() {
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
+		if (!user) {
+			alert('No profile found. Please create a profile first.');
+			router.push('/users/new');
+			return;
+		}
 		const form = new FormData(e.currentTarget);
+		const weekDayRaw = form.get('weekDay') as string;
 		const workout: Workout = {
 			name: form.get('name') as string,
 			exercises: form.getAll('exercises') as string[],
+			username: user.username,
+			weekDay: weekDayRaw ? (weekDayRaw as WeekDay) : undefined,
 		};
 		const db = await Database.getInstance();
+		const repo = new WorkoutRepository(db);
 		try {
-			await db.add('workout', workout);
+			await repo.add(workout);
 			router.push('/workouts');
 		} catch {
 			alert('A workout with this name already exists.');
@@ -48,8 +73,18 @@ export default function NewWorkoutPage() {
 						required
 						name="name"
 						placeholder="Workout name"
-						className="w-full bg-zinc-900 text-white rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-zinc-600 placeholder:text-zinc-500 text-base"
+						className={inputClass}
 					/>
+
+					<div>
+						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-2 block">Day of the Week</label>
+						<select name="weekDay" className={selectClass}>
+							<option value="">No specific day</option>
+							{WEEK_DAYS.map(({ value, label }) => (
+								<option key={value} value={value}>{label}</option>
+							))}
+						</select>
+					</div>
 
 					<div>
 						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3 block">Exercises</label>

@@ -23,13 +23,18 @@ Here's a list of the available object stores, their purposes and their relations
 - user:
     - username: string [unique]
     - sex: option(MALE|FEMALE)
-    - age: number
-    - weight: number
+    - birthDate: date
     - height: number
+
+- userWeightProgression:
+    - username: string [unique]
+    - createdAt: date
+    - weight number
 
 - workout:
     - name: string [unique]
     - exercises: Array<string>
+    - weekDay: option(mon,tue,wed,thu,fri,sat,sun)||NULL 
 
 - exercise:
     - name: string [unique]
@@ -43,20 +48,18 @@ Here's a list of the available object stores, their purposes and their relations
     - timestamp: date
 
 ## Notes
-- It doesn't make sense to have multiple users, no body is going to share 
-the phone of computer
-    - It make a lot more sense to store user data transition, specially weight.
-    - Instead of storing someone's age, store their birthday.
 - workout:
-    - can be associated with a day in the week.
-    - exercise log should be accessible within a workout page.
     - there should be a "START/END" button, that stores the start and end 
     time of a workout session (good for metrics).
-    - if we could store the duration of each series would be very good to 
-    determine the TIME UNDER STRESS in each exercise and the muscular impact.
-    Maybe voice command?
+- exercises:
+    - add cardio exercise option it's based on time not on repetitions.
+    - add timer to count rest between sets should stay in the same screen of the log to avoid repetitive work.
+- Remove home page and all unused code, take care to not break anything.
 
 ### Ideas
+- if we could store the duration of each series would be very good to 
+    determine the TIME UNDER STRESS in each exercise and the muscular impact.
+    Maybe voice command?
 - Add descriptions to exercises
 - Animated images showing how to execute exercise properly
 - Central hub for exercises

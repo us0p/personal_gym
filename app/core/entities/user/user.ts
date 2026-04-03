@@ -6,15 +6,13 @@ enum SexOptions {
 class User {
 	public username: string
 	public sex: SexOptions
-	public age: number
-	public weight: number
+	public birthDate: Date
 	public height: number
 
-	constructor(username: string, sex: SexOptions, age: number, weight: number, height: number) {
+	constructor(username: string, sex: SexOptions, birthDate: Date, height: number) {
 		this.username = username;
 		this.sex = sex;
-		this.age = age;
-		this.weight = weight;
+		this.birthDate = birthDate;
 		this.height = height;
 	}
 }

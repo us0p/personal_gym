@@ -23,16 +23,6 @@ function DumbbellIcon({ active }: { active: boolean }) {
 	);
 }
 
-function ClipboardIcon({ active }: { active: boolean }) {
-	return (
-		<svg className={`w-6 h-6 ${active ? 'text-white' : 'text-zinc-500'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-			<path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
-			<rect x="9" y="3" width="6" height="4" rx="1" />
-			<line x1="9" y1="12" x2="15" y2="12" />
-			<line x1="9" y1="16" x2="13" y2="16" />
-		</svg>
-	);
-}
 
 function BoltIcon({ active }: { active: boolean }) {
 	return (
@@ -54,7 +44,6 @@ function PersonIcon({ active }: { active: boolean }) {
 const tabs = [
 	{ href: '/', label: 'Home', Icon: HomeIcon, exact: true },
 	{ href: '/workouts', label: 'Workouts', Icon: DumbbellIcon, exact: false },
-	{ href: '/executions', label: 'Log', Icon: ClipboardIcon, exact: false },
 	{ href: '/exercises', label: 'Exercises', Icon: BoltIcon, exact: false },
 	{ href: '/users', label: 'Profile', Icon: PersonIcon, exact: false },
 ];

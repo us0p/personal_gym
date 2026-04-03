@@ -3,24 +3,30 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Database from '../core/infra/database';
-import { Workout } from '../core/entities/workout/workout';
+import { Workout, WeekDay } from '../core/entities/workout/workout';
+import { WorkoutRepository } from '../core/entities/workout/workout-repository';
+
+const DAY_LABEL: Record<WeekDay, string> = {
+	[WeekDay.MONDAY]: 'Mon',
+	[WeekDay.TUESDAY]: 'Tue',
+	[WeekDay.WEDNESDAY]: 'Wed',
+	[WeekDay.THURSDAY]: 'Thu',
+	[WeekDay.FRIDAY]: 'Fri',
+	[WeekDay.SATURDAY]: 'Sat',
+	[WeekDay.SUNDAY]: 'Sun',
+};
 
 export default function WorkoutsPage() {
 	const [workouts, setWorkouts] = useState<Workout[]>([]);
 
-	async function load() {
-		const db = await Database.getInstance();
-		setWorkouts(await db.getAll<Workout>('workout'));
-	}
-
-	useEffect(() => { load(); }, []);
-
-	async function handleDelete(name: string) {
-		if (!confirm(`Delete "${name}"?`)) return;
-		const db = await Database.getInstance();
-		await db.delete('workout', name);
+	useEffect(() => {
+		async function load() {
+			const db = await Database.getInstance();
+			const repo = new WorkoutRepository(db);
+			setWorkouts(await repo.getAll());
+		}
 		load();
-	}
+	}, []);
 
 	return (
 		<div className="min-h-screen bg-black text-white px-4 pt-14">
@@ -39,12 +45,28 @@ export default function WorkoutsPage() {
 					{workouts.map((w) => (
 						<div key={w.name} className="bg-zinc-900 rounded-2xl p-4">
 							<div className="flex items-start justify-between">
-								<div>
-									<p className="font-semibold text-lg">{w.name}</p>
+								<Link
+									href={`/workouts/${encodeURIComponent(w.name)}`}
+									className="flex-1 min-w-0"
+								>
+									<div className="flex items-center gap-2">
+										<p className="font-semibold text-lg truncate">{w.name}</p>
+										{w.weekDay && (
+											<span className="shrink-0 text-xs bg-zinc-700 text-zinc-300 rounded-full px-2.5 py-0.5 font-semibold">
+												{DAY_LABEL[w.weekDay]}
+											</span>
+										)}
+									</div>
 									<p className="text-zinc-400 text-sm mt-0.5">
 										{w.exercises.length} {w.exercises.length === 1 ? 'exercise' : 'exercises'}
 									</p>
-								</div>
+								</Link>
+								<Link
+									href={`/workouts/${encodeURIComponent(w.name)}/edit`}
+									className="shrink-0 text-sm text-zinc-500 font-medium ml-4 mt-0.5"
+								>
+									Edit
+								</Link>
 							</div>
 							{w.exercises.length > 0 && (
 								<div className="flex flex-wrap gap-2 mt-3">
@@ -55,20 +77,6 @@ export default function WorkoutsPage() {
 									))}
 								</div>
 							)}
-							<div className="flex gap-2 mt-3">
-								<Link
-									href={`/workouts/${encodeURIComponent(w.name)}`}
-									className="text-sm bg-zinc-800 text-white rounded-xl px-4 py-2 font-medium"
-								>
-									Edit
-								</Link>
-								<button
-									onClick={() => handleDelete(w.name)}
-									className="text-sm bg-zinc-800 text-red-400 rounded-xl px-4 py-2 font-medium ml-auto"
-								>
-									Delete
-								</button>
-							</div>
 						</div>
 					))}
 				</div>

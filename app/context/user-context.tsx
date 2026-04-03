@@ -2,44 +2,44 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../core/entities/user/user';
+import { UserRepository } from '../core/entities/user/user-repository';
+import { UserWeightRepository } from '../core/entities/user/user-weight-repository';
+import { UserProfileService } from '../core/entities/user/user-profile-service';
+import Database from '../core/infra/database';
 
 interface UserContextType {
-	currentUser: User | null;
-	setCurrentUser: (user: User | null) => void;
+	user: User | null;
+	currentWeight: number | undefined;
+	refreshUser: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType>({
-	currentUser: null,
-	setCurrentUser: () => {},
+	user: null,
+	currentWeight: undefined,
+	refreshUser: async () => {},
 });
 
-const STORAGE_KEY = 'gym_current_user';
-
 export function UserProvider({ children }: { children: ReactNode }) {
-	const [currentUser, setCurrentUserState] = useState<User | null>(null);
+	const [user, setUser] = useState<User | null>(null);
+	const [currentWeight, setCurrentWeight] = useState<number | undefined>(undefined);
 
-	useEffect(() => {
-		const stored = localStorage.getItem(STORAGE_KEY);
-		if (stored) {
-			try {
-				setCurrentUserState(JSON.parse(stored));
-			} catch {
-				localStorage.removeItem(STORAGE_KEY);
-			}
-		}
-	}, []);
-
-	function setCurrentUser(user: User | null) {
-		setCurrentUserState(user);
-		if (user) {
-			localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-		} else {
-			localStorage.removeItem(STORAGE_KEY);
-		}
+	async function refreshUser() {
+		const db = await Database.getInstance();
+		const service = new UserProfileService(
+			new UserRepository(db),
+			new UserWeightRepository(db),
+		);
+		const profile = await service.getProfile();
+		setUser(profile?.user ?? null);
+		setCurrentWeight(profile?.weight);
 	}
 
+	useEffect(() => {
+		refreshUser();
+	}, []);
+
 	return (
-		<UserContext.Provider value={{ currentUser, setCurrentUser }}>
+		<UserContext.Provider value={{ user, currentWeight, refreshUser }}>
 			{children}
 		</UserContext.Provider>
 	);

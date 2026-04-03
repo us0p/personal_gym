@@ -74,7 +74,7 @@ describe('fresh install (v0 → latest)', () => {
 	it('creates all required stores', async () => {
 		const db = await Database.createInstance(factory);
 
-		for (const store of ['users', 'workout', 'exercise', 'execution']) {
+		for (const store of ['users', 'workout', 'exercise', 'execution', 'userWeightProgression']) {
 			expect(await storeExists(db, store)).toBe(true);
 		}
 
@@ -167,8 +167,43 @@ describe('incremental migrations', () => {
 		// New stores must exist
 		expect(await storeExists(dbLatest, 'exercise')).toBe(true);
 		expect(await storeExists(dbLatest, 'execution')).toBe(true);
+		expect(await storeExists(dbLatest, 'userWeightProgression')).toBe(true);
 
 		dbLatest.close();
+	});
+
+	it('migration 003 adds userWeightProgression store', async () => {
+		// Simulate a client already at v2
+		const dbV2 = await Database.createInstance(factory, 2);
+		expect(await storeExists(dbV2, 'userWeightProgression')).toBe(false);
+		dbV2.close();
+
+		// Upgrade to v3
+		const dbV3 = await Database.createInstance(factory, 3);
+		expect(await storeExists(dbV3, 'userWeightProgression')).toBe(true);
+
+		// All prior stores must survive
+		for (const store of ['users', 'workout', 'exercise', 'execution']) {
+			expect(await storeExists(dbV3, store)).toBe(true);
+		}
+
+		dbV3.close();
+	});
+
+	it('userWeightProgression supports multiple entries for the same username', async () => {
+		const db = await Database.createInstance(factory);
+
+		await db.add('userWeightProgression', { username: 'alice', createdAt: new Date('2026-01-01'), weight: 70 });
+		await db.add('userWeightProgression', { username: 'alice', createdAt: new Date('2026-02-01'), weight: 68 });
+		await db.add('userWeightProgression', { username: 'alice', createdAt: new Date('2026-03-01'), weight: 66 });
+
+		const all = await db.getAll<{ id: number; username: string; weight: number }>('userWeightProgression');
+		expect(all).toHaveLength(3);
+		expect(all.every((e) => e.username === 'alice')).toBe(true);
+		expect(all[0].id).toBe(1);
+		expect(all[2].id).toBe(3);
+
+		db.close();
 	});
 });
 
