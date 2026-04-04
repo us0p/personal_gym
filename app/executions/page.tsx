@@ -55,7 +55,9 @@ export default function ExecutionsPage() {
 							<div key={ex.id} className="bg-zinc-900 rounded-2xl p-4 flex items-center justify-between gap-3">
 								<div className="min-w-0">
 									<p className="font-semibold truncate">{ex.exerciseName}</p>
-									<p className="text-zinc-400 text-sm mt-0.5">{ex.repNumber} reps · {ex.workoutName}</p>
+									<p className="text-zinc-400 text-sm mt-0.5">
+										{ex.durationMin !== undefined ? `${ex.durationMin} min` : `${ex.repNumber} reps`} · {ex.workoutName}
+									</p>
 									<p className="text-zinc-600 text-xs mt-0.5">{formatDate(ex.timestamp)}</p>
 								</div>
 								<button

@@ -21,10 +21,10 @@ class WorkoutRepository {
 		return this.db.getAll<Workout>(STORE);
 	}
 
-	/** Returns workouts assigned to a specific day of the week. */
+	/** Returns workouts that include a specific day of the week. */
 	async getByWeekDay(day: WeekDay): Promise<Workout[]> {
 		const all = await this.getAll();
-		return all.filter((w) => w.weekDay === day);
+		return all.filter((w) => w.weekDays?.includes(day) ?? false);
 	}
 
 	/** Replaces an existing workout record (upsert). */

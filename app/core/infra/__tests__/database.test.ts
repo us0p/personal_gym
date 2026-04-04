@@ -74,7 +74,7 @@ describe('fresh install (v0 → latest)', () => {
 	it('creates all required stores', async () => {
 		const db = await Database.createInstance(factory);
 
-		for (const store of ['users', 'workout', 'exercise', 'execution', 'userWeightProgression']) {
+		for (const store of ['users', 'workout', 'exercise', 'execution', 'userWeightProgression', 'executionRest']) {
 			expect(await storeExists(db, store)).toBe(true);
 		}
 
@@ -190,6 +190,21 @@ describe('incremental migrations', () => {
 		dbV3.close();
 	});
 
+	it('migration 004 adds executionRest store', async () => {
+		const dbV3 = await Database.createInstance(factory, 3);
+		expect(await storeExists(dbV3, 'executionRest')).toBe(false);
+		dbV3.close();
+
+		const dbV4 = await Database.createInstance(factory, 4);
+		expect(await storeExists(dbV4, 'executionRest')).toBe(true);
+
+		for (const store of ['users', 'workout', 'exercise', 'execution', 'userWeightProgression']) {
+			expect(await storeExists(dbV4, store)).toBe(true);
+		}
+
+		dbV4.close();
+	});
+
 	it('userWeightProgression supports multiple entries for the same username', async () => {
 		const db = await Database.createInstance(factory);
 
@@ -238,12 +253,6 @@ describe('add()', () => {
 		db.close();
 	});
 
-	it('addToObjectStore() is a backwards-compatible alias for add()', async () => {
-		await expect(
-			db.addToObjectStore('users', { username: 'legacy', sex: 'MALE', age: 20, weight: 70, height: 175 }),
-		).resolves.toBeUndefined();
-		db.close();
-	});
 });
 
 describe('put()', () => {
@@ -338,6 +347,40 @@ describe('delete()', () => {
 
 	it('is silent when the key does not exist', async () => {
 		await expect(db.delete('users', 'nobody')).resolves.toBeUndefined();
+		db.close();
+	});
+});
+
+// ─── addGetKey() ─────────────────────────────────────────────────────────────
+
+describe('addGetKey()', () => {
+	let db: Database;
+
+	beforeEach(async () => {
+		db = await Database.createInstance(factory);
+	});
+
+	it('inserts a record and returns its auto-incremented key', async () => {
+		const key = await db.addGetKey('execution', {
+			workoutName: 'Push Day',
+			exerciseName: 'Bench Press',
+			repNumber: 10,
+			timestamp: new Date().toISOString(),
+		});
+		expect(key).toBe(1);
+		db.close();
+	});
+
+	it('returns incrementing keys for successive inserts', async () => {
+		const k1 = await db.addGetKey('execution', { workoutName: 'A', exerciseName: 'B', repNumber: 5, timestamp: new Date().toISOString() });
+		const k2 = await db.addGetKey('execution', { workoutName: 'A', exerciseName: 'C', repNumber: 8, timestamp: new Date().toISOString() });
+		expect(k1).toBe(1);
+		expect(k2).toBe(2);
+		db.close();
+	});
+
+	it('rejects when the object store does not exist', async () => {
+		await expect(db.addGetKey('ghost', { id: 1 })).rejects.toBeInstanceOf(DBError);
 		db.close();
 	});
 });

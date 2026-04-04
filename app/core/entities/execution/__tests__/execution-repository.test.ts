@@ -22,8 +22,9 @@ afterEach(() => {
 // ─── add() ───────────────────────────────────────────────────────────────────
 
 describe('add()', () => {
-	it('saves an execution and assigns an auto-incremented id', async () => {
-		await repo.add({ ...base, repNumber: 10, timestamp: '2026-04-03T10:00:00.000Z' });
+	it('saves an execution, assigns an auto-incremented id, and returns it', async () => {
+		const id = await repo.add({ ...base, repNumber: 10, timestamp: '2026-04-03T10:00:00.000Z' });
+		expect(id).toBe(1);
 		const all = await repo.getAll();
 		expect(all).toHaveLength(1);
 		expect(all[0].id).toBe(1);
@@ -121,6 +122,36 @@ describe('getByWorkoutAndExercise()', () => {
 
 	it('returns an empty array when no entries match', async () => {
 		expect(await repo.getByWorkoutAndExercise('Push Day', 'Squat')).toEqual([]);
+	});
+});
+
+// ─── cardio executions ───────────────────────────────────────────────────────
+
+describe('cardio executions', () => {
+	it('saves a cardio execution with durationMin and no repNumber', async () => {
+		await repo.add({ ...base, durationMin: 30, timestamp: '2026-04-03T10:00:00.000Z' });
+		const all = await repo.getAll();
+		expect(all).toHaveLength(1);
+		expect(all[0].durationMin).toBe(30);
+		expect(all[0].repNumber).toBeUndefined();
+	});
+
+	it('saves a strength execution with repNumber and no durationMin', async () => {
+		await repo.add({ ...base, repNumber: 10, timestamp: '2026-04-03T10:00:00.000Z' });
+		const all = await repo.getAll();
+		expect(all[0].repNumber).toBe(10);
+		expect(all[0].durationMin).toBeUndefined();
+	});
+
+	it('stores cardio and strength executions together', async () => {
+		await repo.add({ ...base, repNumber: 10, timestamp: '2026-04-03T10:00:00.000Z' });
+		await repo.add({ ...base, durationMin: 20, timestamp: '2026-04-03T10:05:00.000Z' });
+		const all = await repo.getAll();
+		expect(all).toHaveLength(2);
+		const cardio = all.find((e) => e.durationMin !== undefined)!;
+		const strength = all.find((e) => e.repNumber !== undefined)!;
+		expect(cardio.durationMin).toBe(20);
+		expect(strength.repNumber).toBe(10);
 	});
 });
 

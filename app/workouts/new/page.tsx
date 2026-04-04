@@ -8,19 +8,8 @@ import { Workout, WeekDay } from '../../core/entities/workout/workout';
 import { WorkoutRepository } from '../../core/entities/workout/workout-repository';
 import { Exercise } from '../../core/entities/exercise/exercise';
 import { useUser } from '../../context/user-context';
-
-const inputClass = "w-full bg-zinc-900 text-white rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-zinc-600 placeholder:text-zinc-500 text-base";
-const selectClass = `${inputClass} appearance-none`;
-
-const WEEK_DAYS: { value: WeekDay; label: string }[] = [
-	{ value: WeekDay.MONDAY, label: 'Monday' },
-	{ value: WeekDay.TUESDAY, label: 'Tuesday' },
-	{ value: WeekDay.WEDNESDAY, label: 'Wednesday' },
-	{ value: WeekDay.THURSDAY, label: 'Thursday' },
-	{ value: WeekDay.FRIDAY, label: 'Friday' },
-	{ value: WeekDay.SATURDAY, label: 'Saturday' },
-	{ value: WeekDay.SUNDAY, label: 'Sunday' },
-];
+import { WEEK_DAYS } from '../../core/entities/workout/week-day-labels';
+import { inputClass } from '../../lib/styles';
 
 export default function NewWorkoutPage() {
 	const router = useRouter();
@@ -43,12 +32,12 @@ export default function NewWorkoutPage() {
 			return;
 		}
 		const form = new FormData(e.currentTarget);
-		const weekDayRaw = form.get('weekDay') as string;
+		const weekDays = form.getAll('weekDays') as WeekDay[];
 		const workout: Workout = {
 			name: form.get('name') as string,
 			exercises: form.getAll('exercises') as string[],
 			username: user.username,
-			weekDay: weekDayRaw ? (weekDayRaw as WeekDay) : undefined,
+			weekDays: weekDays.length > 0 ? weekDays : undefined,
 		};
 		const db = await Database.getInstance();
 		const repo = new WorkoutRepository(db);
@@ -77,13 +66,17 @@ export default function NewWorkoutPage() {
 					/>
 
 					<div>
-						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-2 block">Day of the Week</label>
-						<select name="weekDay" className={selectClass}>
-							<option value="">No specific day</option>
+						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3 block">Days of the Week</label>
+						<div className="flex gap-2">
 							{WEEK_DAYS.map(({ value, label }) => (
-								<option key={value} value={value}>{label}</option>
+								<label key={value} className="flex-1 cursor-pointer">
+									<input type="checkbox" name="weekDays" value={value} className="sr-only peer" />
+									<div className="text-center py-2.5 rounded-xl bg-zinc-900 text-zinc-400 text-xs font-semibold peer-checked:bg-white peer-checked:text-black transition-colors">
+										{label}
+									</div>
+								</label>
 							))}
-						</select>
+						</div>
 					</div>
 
 					<div>
@@ -102,7 +95,9 @@ export default function NewWorkoutPage() {
 										<input type="checkbox" name="exercises" value={ex.name} className="w-4 h-4 accent-white" />
 										<div>
 											<p className="text-sm font-semibold">{ex.name}</p>
-											<p className="text-xs text-zinc-500 capitalize">{ex.type} · {ex.bodyRegion.join(', ')}</p>
+											<p className="text-xs text-zinc-500 capitalize">
+												{ex.type}{ex.bodyRegion.length > 0 ? ` · ${ex.bodyRegion.join(', ')}` : ''}
+											</p>
 										</div>
 									</label>
 								))}

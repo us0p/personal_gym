@@ -1,4 +1,4 @@
-type ExerciseType = 'push' | 'pull';
+type ExerciseType = 'push' | 'pull' | 'cardio';
 
 interface Exercise {
 	name: string;

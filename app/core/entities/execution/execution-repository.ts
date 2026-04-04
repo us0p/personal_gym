@@ -6,9 +6,9 @@ const STORE = 'execution';
 class ExecutionRepository {
 	constructor(private readonly db: Database) {}
 
-	/** Saves a new execution log entry. */
-	async add(execution: Omit<Execution, 'id'>): Promise<void> {
-		await this.db.add(STORE, execution);
+	/** Saves a new execution log entry and returns its generated id. */
+	async add(execution: Omit<Execution, 'id'>): Promise<number> {
+		return this.db.addGetKey(STORE, execution) as Promise<number>;
 	}
 
 	/** Returns all executions sorted by timestamp descending (most recent first). */

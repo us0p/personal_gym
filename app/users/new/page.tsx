@@ -8,8 +8,7 @@ import { UserRepository, UserAlreadyExistsError } from '../../core/entities/user
 import { UserWeightRepository } from '../../core/entities/user/user-weight-repository';
 import { UserProfileService } from '../../core/entities/user/user-profile-service';
 import { useUser } from '../../context/user-context';
-
-const inputClass = "w-full bg-zinc-900 text-white rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-zinc-600 placeholder:text-zinc-500 text-base";
+import { inputClass } from '../../lib/styles';
 
 export default function NewUserPage() {
 	const router = useRouter();

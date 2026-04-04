@@ -122,6 +122,20 @@ class Database {
 		});
 	}
 
+	/** Inserts a new record and returns the generated key. Rejects if the key already exists. */
+	addGetKey(storeName: string, value: object): Promise<IDBValidKey> {
+		return new Promise((resolve, reject) => {
+			try {
+				const tx = this.db.transaction(storeName, 'readwrite');
+				tx.onerror = () => reject(new DBError(tx.error?.message ?? 'Transaction error'));
+				const req = tx.objectStore(storeName).add(value);
+				req.onsuccess = () => resolve(req.result);
+			} catch (e) {
+				reject(new DBError((e as Error).message ?? 'Transaction error'));
+			}
+		});
+	}
+
 	/** Inserts or replaces a record (upsert). */
 	put(storeName: string, value: object): Promise<void> {
 		return new Promise((resolve, reject) => {
@@ -178,10 +192,6 @@ class Database {
 		});
 	}
 
-	/** @deprecated Use `add()` instead. */
-	addToObjectStore(storeName: string, value: object): Promise<void> {
-		return this.add(storeName, value);
-	}
 }
 
 export { DBError };

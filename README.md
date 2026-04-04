@@ -34,7 +34,7 @@ Here's a list of the available object stores, their purposes and their relations
 - workout:
     - name: string [unique]
     - exercises: Array<string>
-    - weekDay: option(mon,tue,wed,thu,fri,sat,sun)||NULL 
+    - weekDay: Array<option(mon,tue,wed,thu,fri,sat,sun)>||NULL 
 
 - exercise:
     - name: string [unique]
@@ -42,18 +42,24 @@ Here's a list of the available object stores, their purposes and their relations
     - type: option(push/pull/cardio)
 
 - execution:
+    - id: number [unique]
     - workoutName: string
     - exerciseName: string
-    - repNumber: number
+    - repNumber: number||NULL
+    - durationMin: number||NULL
     - timestamp: date
+
+- executionRest:
+    - id: number [unique]
+    - executionId: number
+    - workoutId: number
+    - timestamp: date
+    - durationSeconds: number
 
 ## Notes
 - workout:
     - there should be a "START/END" button, that stores the start and end 
     time of a workout session (good for metrics).
-- exercises:
-    - add cardio exercise option it's based on time not on repetitions.
-    - add timer to count rest between sets should stay in the same screen of the log to avoid repetitive work.
 - Remove home page and all unused code, take care to not break anything.
 
 ### Ideas

@@ -42,10 +42,10 @@ export default function ExercisesPage() {
 								<div>
 									<p className="font-semibold">{ex.name}</p>
 									<p className="text-zinc-400 text-sm mt-0.5 capitalize">
-										{ex.type} · {ex.bodyRegion.join(', ')}
+										{ex.type}{ex.bodyRegion.length > 0 ? ` · ${ex.bodyRegion.join(', ')}` : ''}
 									</p>
 								</div>
-								<span className={`text-xs font-semibold rounded-full px-2.5 py-1 capitalize ${ex.type === 'push' ? 'bg-orange-500/20 text-orange-400' : 'bg-blue-500/20 text-blue-400'}`}>
+								<span className={`text-xs font-semibold rounded-full px-2.5 py-1 capitalize ${ex.type === 'push' ? 'bg-orange-500/20 text-orange-400' : ex.type === 'pull' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'}`}>
 									{ex.type}
 								</span>
 							</div>

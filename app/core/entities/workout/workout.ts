@@ -12,7 +12,7 @@ interface Workout {
 	name: string;
 	exercises: string[];
 	username: string;
-	weekDay?: WeekDay;
+	weekDays?: WeekDay[];
 }
 
 export { WeekDay };

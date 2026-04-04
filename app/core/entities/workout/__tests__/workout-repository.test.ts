@@ -39,17 +39,17 @@ describe('WeekDay', () => {
 // ─── add() ───────────────────────────────────────────────────────────────────
 
 describe('add()', () => {
-	it('creates a workout without weekDay', async () => {
+	it('creates a workout without weekDays', async () => {
 		await repo.add({ ...base, name: 'Push Day' });
 		const found = await repo.get('Push Day');
 		expect(found?.name).toBe('Push Day');
-		expect(found?.weekDay).toBeUndefined();
+		expect(found?.weekDays).toBeUndefined();
 	});
 
-	it('creates a workout with a weekDay', async () => {
-		await repo.add({ ...base, name: 'Push Day', weekDay: WeekDay.MONDAY });
+	it('creates a workout with a single weekDay', async () => {
+		await repo.add({ ...base, name: 'Push Day', weekDays: [WeekDay.MONDAY] });
 		const found = await repo.get('Push Day');
-		expect(found?.weekDay).toBe(WeekDay.MONDAY);
+		expect(found?.weekDays).toEqual([WeekDay.MONDAY]);
 	});
 
 	it('rejects when a workout with the same name already exists', async () => {
@@ -62,9 +62,9 @@ describe('add()', () => {
 
 describe('get()', () => {
 	it('returns the workout for a known name', async () => {
-		await repo.add({ ...base, name: 'Leg Day', weekDay: WeekDay.WEDNESDAY });
+		await repo.add({ ...base, name: 'Leg Day', weekDays: [WeekDay.WEDNESDAY] });
 		const found = await repo.get('Leg Day');
-		expect(found?.weekDay).toBe(WeekDay.WEDNESDAY);
+		expect(found?.weekDays).toEqual([WeekDay.WEDNESDAY]);
 	});
 
 	it('returns undefined for an unknown name', async () => {
@@ -79,8 +79,8 @@ describe('getAll()', () => {
 		expect(await repo.getAll()).toEqual([]);
 	});
 
-	it('returns all workouts regardless of weekDay', async () => {
-		await repo.add({ ...base, name: 'Push Day', weekDay: WeekDay.MONDAY });
+	it('returns all workouts regardless of weekDays', async () => {
+		await repo.add({ ...base, name: 'Push Day', weekDays: [WeekDay.MONDAY] });
 		await repo.add({ ...base, name: 'Pull Day' });
 		const all = await repo.getAll();
 		expect(all).toHaveLength(2);
@@ -91,9 +91,9 @@ describe('getAll()', () => {
 
 describe('getByWeekDay()', () => {
 	beforeEach(async () => {
-		await repo.add({ ...base, name: 'Push Day', weekDay: WeekDay.MONDAY });
-		await repo.add({ ...base, name: 'Pull Day', weekDay: WeekDay.WEDNESDAY });
-		await repo.add({ ...base, name: 'Rest Day' }); // no weekDay
+		await repo.add({ ...base, name: 'Push Day', weekDays: [WeekDay.MONDAY] });
+		await repo.add({ ...base, name: 'Pull Day', weekDays: [WeekDay.WEDNESDAY] });
+		await repo.add({ ...base, name: 'Rest Day' }); // no weekDays
 	});
 
 	it('returns workouts assigned to the requested day', async () => {
@@ -107,7 +107,7 @@ describe('getByWeekDay()', () => {
 		expect(result.map((w) => w.name)).not.toContain('Pull Day');
 	});
 
-	it('does not return workouts with no weekDay', async () => {
+	it('does not return workouts with no weekDays', async () => {
 		const result = await repo.getByWeekDay(WeekDay.MONDAY);
 		expect(result.map((w) => w.name)).not.toContain('Rest Day');
 	});
@@ -121,25 +121,25 @@ describe('getByWeekDay()', () => {
 // ─── update() ────────────────────────────────────────────────────────────────
 
 describe('update()', () => {
-	it('adds weekDay to a workout that had none', async () => {
+	it('adds weekDays to a workout that had none', async () => {
 		await repo.add({ ...base, name: 'Push Day' });
-		await repo.update({ ...base, name: 'Push Day', weekDay: WeekDay.TUESDAY });
+		await repo.update({ ...base, name: 'Push Day', weekDays: [WeekDay.TUESDAY] });
 		const found = await repo.get('Push Day');
-		expect(found?.weekDay).toBe(WeekDay.TUESDAY);
+		expect(found?.weekDays).toEqual([WeekDay.TUESDAY]);
 	});
 
-	it('changes the weekDay of an existing workout', async () => {
-		await repo.add({ ...base, name: 'Push Day', weekDay: WeekDay.MONDAY });
-		await repo.update({ ...base, name: 'Push Day', weekDay: WeekDay.FRIDAY });
+	it('changes the weekDays of an existing workout', async () => {
+		await repo.add({ ...base, name: 'Push Day', weekDays: [WeekDay.MONDAY] });
+		await repo.update({ ...base, name: 'Push Day', weekDays: [WeekDay.FRIDAY] });
 		const found = await repo.get('Push Day');
-		expect(found?.weekDay).toBe(WeekDay.FRIDAY);
+		expect(found?.weekDays).toEqual([WeekDay.FRIDAY]);
 	});
 
-	it('clears weekDay when updated without it', async () => {
-		await repo.add({ ...base, name: 'Push Day', weekDay: WeekDay.MONDAY });
+	it('clears weekDays when updated without them', async () => {
+		await repo.add({ ...base, name: 'Push Day', weekDays: [WeekDay.MONDAY] });
 		await repo.update({ ...base, name: 'Push Day' });
 		const found = await repo.get('Push Day');
-		expect(found?.weekDay).toBeUndefined();
+		expect(found?.weekDays).toBeUndefined();
 		const monday = await repo.getByWeekDay(WeekDay.MONDAY);
 		expect(monday).toHaveLength(0);
 	});
@@ -149,6 +149,37 @@ describe('update()', () => {
 		await repo.update({ ...base, name: 'Push Day', exercises: ['Bench Press', 'OHP'] });
 		const found = await repo.get('Push Day');
 		expect(found?.exercises).toEqual(['Bench Press', 'OHP']);
+	});
+});
+
+// ─── multiple weekDays ───────────────────────────────────────────────────────
+
+describe('multiple weekDays', () => {
+	it('creates a workout with multiple weekDays', async () => {
+		await repo.add({ ...base, name: 'Push Day', weekDays: [WeekDay.MONDAY, WeekDay.THURSDAY] });
+		const found = await repo.get('Push Day');
+		expect(found?.weekDays).toEqual([WeekDay.MONDAY, WeekDay.THURSDAY]);
+	});
+
+	it('getByWeekDay returns a workout if the day is included in weekDays', async () => {
+		await repo.add({ ...base, name: 'Push Day', weekDays: [WeekDay.MONDAY, WeekDay.THURSDAY] });
+		const monday = await repo.getByWeekDay(WeekDay.MONDAY);
+		expect(monday).toHaveLength(1);
+		expect(monday[0].name).toBe('Push Day');
+		const thursday = await repo.getByWeekDay(WeekDay.THURSDAY);
+		expect(thursday).toHaveLength(1);
+		expect(thursday[0].name).toBe('Push Day');
+	});
+
+	it('getByWeekDay does not return a workout when the day is not in weekDays', async () => {
+		await repo.add({ ...base, name: 'Push Day', weekDays: [WeekDay.MONDAY, WeekDay.THURSDAY] });
+		expect(await repo.getByWeekDay(WeekDay.TUESDAY)).toHaveLength(0);
+	});
+
+	it('creates a workout with no weekDays', async () => {
+		await repo.add({ ...base, name: 'Free Day' });
+		const found = await repo.get('Free Day');
+		expect(found?.weekDays).toBeUndefined();
 	});
 });
 

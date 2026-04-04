@@ -3,19 +3,23 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Database from '../../core/infra/database';
-import { Exercise, BODY_REGIONS } from '../../core/entities/exercise/exercise';
+import { Exercise, ExerciseType, BODY_REGIONS } from '../../core/entities/exercise/exercise';
 
 export default function EditExercisePage() {
 	const params = useParams();
 	const router = useRouter();
 	const name = decodeURIComponent(params.name as string);
 	const [exercise, setExercise] = useState<Exercise | null>(null);
+	const [type, setType] = useState<ExerciseType>('push');
 
 	useEffect(() => {
 		async function load() {
 			const db = await Database.getInstance();
 			const found = await db.get<Exercise>('exercise', name);
-			setExercise(found ?? null);
+			if (found) {
+				setExercise(found);
+				setType(found.type);
+			}
 		}
 		load();
 	}, [name]);
@@ -24,10 +28,11 @@ export default function EditExercisePage() {
 		e.preventDefault();
 		if (!exercise) return;
 		const form = new FormData(e.currentTarget);
+		const bodyRegion = type === 'cardio' ? [] : form.getAll('bodyRegion') as string[];
 		const updated: Exercise = {
 			name: exercise.name,
-			type: form.get('type') as 'push' | 'pull',
-			bodyRegion: form.getAll('bodyRegion') as string[],
+			type,
+			bodyRegion,
 		};
 		const db = await Database.getInstance();
 		await db.put('exercise', updated);
@@ -67,9 +72,16 @@ export default function EditExercisePage() {
 					<div>
 						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-2 block">Type</label>
 						<div className="flex gap-3">
-							{(['push', 'pull'] as const).map((t) => (
+							{(['push', 'pull', 'cardio'] as const).map((t) => (
 								<label key={t} className="flex-1 cursor-pointer">
-									<input type="radio" name="type" value={t} defaultChecked={exercise.type === t} className="sr-only peer" />
+									<input
+										type="radio"
+										name="type"
+										value={t}
+										checked={type === t}
+										onChange={() => setType(t)}
+										className="sr-only peer"
+									/>
 									<div className="text-center py-3.5 rounded-xl bg-zinc-900 text-zinc-400 font-semibold capitalize peer-checked:bg-white peer-checked:text-black transition-colors">
 										{t}
 									</div>
@@ -78,23 +90,25 @@ export default function EditExercisePage() {
 						</div>
 					</div>
 
-					<div>
-						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3 block">Body Region</label>
-						<div className="grid grid-cols-2 gap-2">
-							{BODY_REGIONS.map((region) => (
-								<label key={region} className="flex items-center gap-3 bg-zinc-900 rounded-xl px-4 py-3 cursor-pointer active:bg-zinc-800">
-									<input
-										type="checkbox"
-										name="bodyRegion"
-										value={region}
-										defaultChecked={exercise.bodyRegion.includes(region)}
-										className="w-4 h-4 accent-white"
-									/>
-									<span className="text-sm font-medium">{region}</span>
-								</label>
-							))}
+					{type !== 'cardio' && (
+						<div>
+							<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3 block">Body Region</label>
+							<div className="grid grid-cols-2 gap-2">
+								{BODY_REGIONS.map((region) => (
+									<label key={region} className="flex items-center gap-3 bg-zinc-900 rounded-xl px-4 py-3 cursor-pointer active:bg-zinc-800">
+										<input
+											type="checkbox"
+											name="bodyRegion"
+											value={region}
+											defaultChecked={exercise.bodyRegion.includes(region)}
+											className="w-4 h-4 accent-white"
+										/>
+										<span className="text-sm font-medium">{region}</span>
+									</label>
+								))}
+							</div>
 						</div>
-					</div>
+					)}
 
 					<button type="submit" className="w-full bg-white text-black rounded-xl py-4 font-bold text-base">
 						Save Changes

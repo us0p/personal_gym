@@ -9,8 +9,7 @@ import { UserWeightRepository } from '../../core/entities/user/user-weight-repos
 import { UserProfileService, UserProfile } from '../../core/entities/user/user-profile-service';
 import { useUser } from '../../context/user-context';
 import { toDateInputValue } from '../utils';
-
-const inputClass = "w-full bg-zinc-900 text-white rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-zinc-600 placeholder:text-zinc-500 text-base";
+import { inputClass } from '../../lib/styles';
 
 export default function EditUserPage() {
 	const router = useRouter();

@@ -2,7 +2,8 @@ interface Execution {
 	id?: number;
 	workoutName: string;
 	exerciseName: string;
-	repNumber: number;
+	repNumber?: number;
+	durationMin?: number;
 	timestamp: string;
 	username: string;
 }

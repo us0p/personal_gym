@@ -6,7 +6,7 @@ import { useUser } from './context/user-context';
 import Database from './core/infra/database';
 
 export default function Dashboard() {
-	const { currentUser } = useUser();
+	const { user } = useUser();
 	const [stats, setStats] = useState({ workouts: 0, exercises: 0, executions: 0 });
 
 	useEffect(() => {
@@ -32,11 +32,11 @@ export default function Dashboard() {
 				<div>
 					<p className="text-zinc-500 text-xs uppercase tracking-widest font-semibold">Personal Gym</p>
 					<h1 className="text-3xl font-bold mt-1">
-						{currentUser ? `Hey, ${currentUser.username}` : 'Welcome'}
+						{user ? `Hey, ${user.username}` : 'Welcome'}
 					</h1>
 				</div>
 
-				{!currentUser && (
+				{!user && (
 					<Link href="/users" className="flex items-center justify-between bg-zinc-900 rounded-2xl p-4 border border-zinc-800">
 						<div>
 							<p className="text-zinc-400 text-sm">No user selected</p>

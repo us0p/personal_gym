@@ -4,18 +4,9 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Database from '../../core/infra/database';
-import { Workout, WeekDay } from '../../core/entities/workout/workout';
+import { Workout } from '../../core/entities/workout/workout';
 import { WorkoutRepository } from '../../core/entities/workout/workout-repository';
-
-const DAY_LABEL: Record<WeekDay, string> = {
-	[WeekDay.MONDAY]: 'Monday',
-	[WeekDay.TUESDAY]: 'Tuesday',
-	[WeekDay.WEDNESDAY]: 'Wednesday',
-	[WeekDay.THURSDAY]: 'Thursday',
-	[WeekDay.FRIDAY]: 'Friday',
-	[WeekDay.SATURDAY]: 'Saturday',
-	[WeekDay.SUNDAY]: 'Sunday',
-};
+import { DAY_LABEL_LONG } from '../../core/entities/workout/week-day-labels';
 
 export default function WorkoutPage() {
 	const params = useParams();
@@ -49,8 +40,10 @@ export default function WorkoutPage() {
 						<button onClick={() => router.back()} className="text-zinc-400 text-2xl leading-none">‹</button>
 						<div>
 							<h1 className="text-2xl font-bold">{workout.name}</h1>
-							{workout.weekDay && (
-								<p className="text-zinc-500 text-sm mt-0.5">{DAY_LABEL[workout.weekDay]}</p>
+							{workout.weekDays && workout.weekDays.length > 0 && (
+								<p className="text-zinc-500 text-sm mt-0.5">
+									{workout.weekDays.map((d) => DAY_LABEL_LONG[d]).join(', ')}
+								</p>
 							)}
 						</div>
 					</div>

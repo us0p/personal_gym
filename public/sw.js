@@ -1,6 +1,6 @@
 const CACHE_NAME = "personal-gym-v1";
 
-const APP_SHELL = ["/", "/login"];
+const APP_SHELL = ["/"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
