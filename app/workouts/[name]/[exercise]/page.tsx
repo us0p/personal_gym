@@ -19,24 +19,6 @@ function formatCountdown(totalSeconds: number): string {
 	return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-function playRestDone() {
-	try {
-		const ctx = new AudioContext();
-		[0, 0.35, 0.7].forEach((offset) => {
-			const osc = ctx.createOscillator();
-			const gain = ctx.createGain();
-			osc.connect(gain);
-			gain.connect(ctx.destination);
-			osc.type = 'sine';
-			osc.frequency.value = 880;
-			gain.gain.setValueAtTime(0.4, ctx.currentTime + offset);
-			gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.3);
-			osc.start(ctx.currentTime + offset);
-			osc.stop(ctx.currentTime + offset + 0.3);
-		});
-	} catch { /* AudioContext unavailable */ }
-}
-
 export default function ExerciseLogPage() {
 	const params = useParams();
 	const router = useRouter();
@@ -51,7 +33,49 @@ export default function ExerciseLogPage() {
 	const [timerRemaining, setTimerRemaining] = useState(0);
 	const [timerActive, setTimerActive] = useState(false);
 	const timerEndRef = useRef<number | null>(null);
+	const audioCtxRef = useRef<AudioContext | null>(null);
 	const formRef = useRef<HTMLFormElement>(null);
+
+	function getOrCreateAudioContext(): AudioContext | null {
+		try {
+			if (!audioCtxRef.current) {
+				const AudioContextClass =
+					window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+				if (!AudioContextClass) return null;
+				audioCtxRef.current = new AudioContextClass();
+			}
+			return audioCtxRef.current;
+		} catch { return null; }
+	}
+
+	function unlockAudio() {
+		const ctx = getOrCreateAudioContext();
+		if (ctx && ctx.state === 'suspended') ctx.resume();
+	}
+
+	function playRestDone() {
+		const ctx = audioCtxRef.current;
+		if (!ctx) return;
+		const doPlay = () => {
+			[0, 0.35, 0.7].forEach((offset) => {
+				const osc = ctx.createOscillator();
+				const gain = ctx.createGain();
+				osc.connect(gain);
+				gain.connect(ctx.destination);
+				osc.type = 'sine';
+				osc.frequency.value = 880;
+				gain.gain.setValueAtTime(0.4, ctx.currentTime + offset);
+				gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.3);
+				osc.start(ctx.currentTime + offset);
+				osc.stop(ctx.currentTime + offset + 0.3);
+			});
+		};
+		if (ctx.state === 'suspended') {
+			ctx.resume().then(doPlay).catch(() => { /* silent fail */ });
+		} else {
+			doPlay();
+		}
+	}
 
 	async function loadExecutions() {
 		const db = await Database.getInstance();
@@ -115,6 +139,7 @@ export default function ExerciseLogPage() {
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		if (!user) return;
+		unlockAudio();
 
 		const form = new FormData(e.currentTarget);
 		const execution: Omit<Execution, 'id'> = exerciseType === 'cardio'

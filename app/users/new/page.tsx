@@ -59,7 +59,7 @@ export default function NewUserPage() {
 					<input required name="username" placeholder="Username" className={inputClass} />
 					<div>
 						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-1.5 block">Date of Birth</label>
-						<input required name="birthDate" type="date" className={inputClass} />
+						<input required name="birthDate" type="date" className={`${inputClass} min-w-0`} />
 					</div>
 					<input required name="height" type="number" min={1} placeholder="Height (cm)" className={inputClass} />
 					<input name="weight" type="number" min={1} step="0.1" placeholder="Weight (kg)" className={inputClass} />

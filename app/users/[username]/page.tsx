@@ -98,7 +98,7 @@ export default function EditUserPage() {
 							name="birthDate"
 							type="date"
 							defaultValue={toDateInputValue(user.birthDate)}
-							className={inputClass}
+							className={`${inputClass} min-w-0`}
 						/>
 					</div>
 					<input required name="height" type="number" min={1} defaultValue={user.height} placeholder="Height (cm)" className={inputClass} />
