@@ -6,7 +6,6 @@ import Database from '../../../core/infra/database';
 import { Workout, WeekDay } from '../../../core/entities/workout/workout';
 import { WorkoutRepository } from '../../../core/entities/workout/workout-repository';
 import { ExecutionRepository } from '../../../core/entities/execution/execution-repository';
-import { ExecutionRestRepository } from '../../../core/entities/execution/execution-rest-repository';
 import { Exercise } from '../../../core/entities/exercise/exercise';
 import { WEEK_DAYS } from '../../../core/entities/workout/week-day-labels';
 import { inputClass } from '../../../lib/styles';
@@ -59,13 +58,6 @@ export default function EditWorkoutPage() {
 					}
 				}
 
-				const restRepo = new ExecutionRestRepository(db);
-				const allRests = await restRepo.getAll();
-				for (const rest of allRests) {
-					if (rest.workoutName === workout.name) {
-						await db.put('executionRest', { ...rest, workoutName: newName });
-					}
-				}
 			} else {
 				await repo.update(updated);
 			}
