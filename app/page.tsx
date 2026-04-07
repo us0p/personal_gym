@@ -7,6 +7,7 @@ import { UserWeightRepository } from './core/entities/user/user-weight-repositor
 import type { UserWeightEntry } from './core/entities/user/user-weight-entry';
 import WeightChart from './components/weight-chart';
 import ExerciseProgressionChart from './components/exercise-progression-chart';
+import WorkoutExerciseMetrics from './components/workout-exercise-metrics';
 
 export default function Dashboard() {
 	const { user } = useUser();
@@ -35,6 +36,7 @@ export default function Dashboard() {
 				<WeightChart entries={weightHistory} />
 
 				{user && <ExerciseProgressionChart username={user.username} />}
+				<WorkoutExerciseMetrics />
 			</div>
 		</div>
 	);

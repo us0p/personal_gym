@@ -8,6 +8,7 @@ import { Exercise, ExerciseType } from '../../../core/entities/exercise/exercise
 import { Execution } from '../../../core/entities/execution/execution';
 import { ExecutionRepository } from '../../../core/entities/execution/execution-repository';
 import { ExecutionRestRepository } from '../../../core/entities/execution/execution-rest-repository';
+import { ExecutionSpeedRepository } from '../../../core/entities/execution/execution-speed-repository';
 import { useUser } from '../../../context/user-context';
 import { useTimer } from '../../../context/timer-context';
 
@@ -80,7 +81,6 @@ export default function ExerciseLogPage() {
 			const restRepo = new ExecutionRestRepository(db);
 			await restRepo.add({
 				executionId,
-				workoutName,
 				timestamp: new Date().toISOString(),
 				durationSeconds: totalRestSeconds,
 			});
@@ -100,8 +100,14 @@ export default function ExerciseLogPage() {
 
 	const totalRestSecs = restMinutes * 60 + restSeconds;
 
+	async function handleSpeedStart(executionDuration: number) {
+		const db = await Database.getInstance();
+		const speedRepo = new ExecutionSpeedRepository(db);
+		await speedRepo.add({ exerciseName, workoutName, executionDuration });
+	}
+
 	if (showAssistant) {
-		return <SpeedAssistant onClose={() => setShowAssistant(false)} />;
+		return <SpeedAssistant onClose={() => setShowAssistant(false)} onStart={handleSpeedStart} />;
 	}
 
 	return (

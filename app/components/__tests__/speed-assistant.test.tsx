@@ -80,8 +80,8 @@ afterEach(() => {
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-function renderAssistant(onClose = vi.fn()) {
-	return { onClose, ...render(<SpeedAssistant onClose={onClose} />) };
+function renderAssistant(onClose = vi.fn(), onStart?: (duration: number) => void) {
+	return { onClose, ...render(<SpeedAssistant onClose={onClose} onStart={onStart} />) };
 }
 
 // ── tests ─────────────────────────────────────────────────────────────────────
@@ -198,6 +198,31 @@ describe('SpeedAssistant – duration input', () => {
 			fireEvent.click(screen.getByTestId('stop-button'));
 		});
 		expect((screen.getByTestId('duration-input') as HTMLInputElement).disabled).toBe(false);
+	});
+});
+
+describe('SpeedAssistant – onStart callback', () => {
+	it('calls onStart with the current duration when start is clicked', async () => {
+		const onStart = vi.fn();
+		renderAssistant(vi.fn(), onStart);
+
+		const input = screen.getByTestId('duration-input') as HTMLInputElement;
+		fireEvent.change(input, { target: { value: '2' } });
+
+		await act(async () => {
+			fireEvent.click(screen.getByTestId('start-button'));
+		});
+
+		expect(onStart).toHaveBeenCalledOnce();
+		expect(onStart).toHaveBeenCalledWith(2);
+	});
+
+	it('does not throw when onStart is not provided', async () => {
+		renderAssistant();
+		await act(async () => {
+			fireEvent.click(screen.getByTestId('start-button'));
+		});
+		// No error thrown — test passes if we reach this point
 	});
 });
 

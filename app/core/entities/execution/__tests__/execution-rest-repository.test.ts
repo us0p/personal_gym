@@ -9,7 +9,6 @@ let repo: ExecutionRestRepository;
 
 const base = {
 	executionId: 1,
-	workoutName: 'Push Day',
 	durationSeconds: 90,
 };
 
@@ -32,7 +31,6 @@ describe('add()', () => {
 		expect(all).toHaveLength(1);
 		expect(all[0].id).toBe(1);
 		expect(all[0].durationSeconds).toBe(90);
-		expect(all[0].workoutName).toBe('Push Day');
 	});
 
 	it('allows multiple rest entries for the same execution', async () => {

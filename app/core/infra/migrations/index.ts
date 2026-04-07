@@ -4,6 +4,8 @@ import migration002 from './002-add_exercise_execution';
 import migration003 from './003-add_user_weight_progression';
 import migration004 from './004-add_execution_rest';
 import migration005 from './005-backfill_username';
+import migration006 from './006-add_execution_speed';
+import migration007 from './007-remove_workout_name_from_execution_rest';
 import type { Migration } from './types';
 
 /**
@@ -24,6 +26,8 @@ const migrations: Migration[] = [
 	migration003,
 	migration004,
 	migration005,
+	migration006,
+	migration007,
 ].sort((a, b) => a.version - b.version);
 
 if (migrations.length !== DATABASE_VERSION) {

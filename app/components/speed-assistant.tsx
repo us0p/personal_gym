@@ -45,9 +45,10 @@ function playBeep(ctx: AudioContext) {
 
 interface Props {
 	onClose: () => void;
+	onStart?: (duration: number) => void;
 }
 
-export default function SpeedAssistant({ onClose }: Props) {
+export default function SpeedAssistant({ onClose, onStart }: Props) {
 	const [duration, setDuration] = useState(1);
 	const [running, setRunning] = useState(false);
 	const [angle, setAngle] = useState(-MAX_ANGLE);
@@ -74,8 +75,9 @@ export default function SpeedAssistant({ onClose }: Props) {
 		if (audioCtxRef.current?.state === 'suspended') {
 			audioCtxRef.current.resume().catch(() => {});
 		}
+		onStart?.(duration);
 		setRunning(true);
-	}, []);
+	}, [duration, onStart]);
 
 	useEffect(() => {
 		if (!running) return;

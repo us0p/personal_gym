@@ -74,7 +74,7 @@ describe('fresh install (v0 → latest)', () => {
 	it('creates all required stores', async () => {
 		const db = await Database.createInstance(factory);
 
-		for (const store of ['users', 'workout', 'exercise', 'execution', 'userWeightProgression', 'executionRest']) {
+		for (const store of ['users', 'workout', 'exercise', 'execution', 'userWeightProgression', 'executionRest', 'executionSpeed']) {
 			expect(await storeExists(db, store)).toBe(true);
 		}
 
@@ -243,6 +243,50 @@ describe('incremental migrations', () => {
 		expect(execution.username).toBe('alice');
 
 		dbV5.close();
+	});
+
+	it('migration 006 adds executionSpeed store', async () => {
+		const dbV5 = await Database.createInstance(factory, 5);
+		expect(await storeExists(dbV5, 'executionSpeed')).toBe(false);
+		dbV5.close();
+
+		const dbV6 = await Database.createInstance(factory, 6);
+		expect(await storeExists(dbV6, 'executionSpeed')).toBe(true);
+
+		for (const store of ['users', 'workout', 'exercise', 'execution', 'userWeightProgression', 'executionRest']) {
+			expect(await storeExists(dbV6, store)).toBe(true);
+		}
+
+		dbV6.close();
+	});
+
+	it('migration 007 removes the workoutName field from existing executionRest records', async () => {
+		const dbV6 = await Database.createInstance(factory, 6);
+		await dbV6.add('executionRest', { executionId: 1, workoutName: 'Push Day', timestamp: '2026-01-01T00:00:00.000Z', durationSeconds: 90 });
+		await dbV6.add('executionRest', { executionId: 2, workoutName: 'Leg Day', timestamp: '2026-01-02T00:00:00.000Z', durationSeconds: 60 });
+		dbV6.close();
+
+		const dbV7 = await Database.createInstance(factory, 7);
+		const records = await dbV7.getAll<Record<string, unknown>>('executionRest');
+		expect(records).toHaveLength(2);
+		for (const record of records) {
+			expect(record).not.toHaveProperty('workoutName');
+			expect(record).toHaveProperty('executionId');
+			expect(record).toHaveProperty('durationSeconds');
+		}
+		dbV7.close();
+	});
+
+	it('migration 007 is a no-op when executionRest has no records with workoutName', async () => {
+		const dbV6 = await Database.createInstance(factory, 6);
+		await dbV6.add('executionRest', { executionId: 1, timestamp: '2026-01-01T00:00:00.000Z', durationSeconds: 90 });
+		dbV6.close();
+
+		const dbV7 = await Database.createInstance(factory, 7);
+		const records = await dbV7.getAll<Record<string, unknown>>('executionRest');
+		expect(records).toHaveLength(1);
+		expect(records[0]).not.toHaveProperty('workoutName');
+		dbV7.close();
 	});
 
 	it('migration 005 is a no-op when no user exists', async () => {
