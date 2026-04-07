@@ -5,22 +5,41 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 const MAX_ANGLE = 45;
 const THRESHOLD = MAX_ANGLE - 0.5;
 
-function playBeep() {
+type AudioCls = typeof AudioContext;
+
+function createAudioContext(): AudioContext | null {
 	try {
-		const AudioCtx = window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-		const ctx = new AudioCtx();
-		const osc = ctx.createOscillator();
-		const gain = ctx.createGain();
-		osc.connect(gain);
-		gain.connect(ctx.destination);
-		osc.type = 'sine';
-		osc.frequency.value = 880;
-		gain.gain.setValueAtTime(0.3, ctx.currentTime);
-		gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-		osc.start(ctx.currentTime);
-		osc.stop(ctx.currentTime + 0.12);
+		const Cls: AudioCls = window.AudioContext
+			?? (window as typeof window & { webkitAudioContext: AudioCls }).webkitAudioContext;
+		return new Cls();
 	} catch {
-		// Audio not available in this environment
+		return null;
+	}
+}
+
+function playBeep(ctx: AudioContext) {
+	const doPlay = () => {
+		try {
+			const osc = ctx.createOscillator();
+			const gain = ctx.createGain();
+			osc.connect(gain);
+			gain.connect(ctx.destination);
+			osc.type = 'sine';
+			osc.frequency.value = 880;
+			gain.gain.setValueAtTime(0.3, ctx.currentTime);
+			gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+			osc.start(ctx.currentTime);
+			osc.stop(ctx.currentTime + 0.12);
+		} catch {
+			// silent fail
+		}
+	};
+
+	// iOS Safari suspends the context after inactivity — always resume first
+	if (ctx.state === 'suspended') {
+		ctx.resume().then(doPlay).catch(() => {});
+	} else {
+		doPlay();
 	}
 }
 
@@ -35,6 +54,9 @@ export default function SpeedAssistant({ onClose }: Props) {
 	const rafRef = useRef<number>(0);
 	const startTimeRef = useRef<number>(0);
 	const lastBeepSideRef = useRef<'left' | 'right' | null>(null);
+	// Single AudioContext reused for the lifetime of the component.
+	// Created during the Start button click (a user gesture) so iOS unlocks it.
+	const audioCtxRef = useRef<AudioContext | null>(null);
 
 	const stop = useCallback(() => {
 		setRunning(false);
@@ -44,6 +66,14 @@ export default function SpeedAssistant({ onClose }: Props) {
 	}, []);
 
 	const start = useCallback(() => {
+		// Create (or reuse) the AudioContext inside a user-gesture handler so
+		// iOS Safari grants audio permission without requiring a separate tap.
+		if (!audioCtxRef.current) {
+			audioCtxRef.current = createAudioContext();
+		}
+		if (audioCtxRef.current?.state === 'suspended') {
+			audioCtxRef.current.resume().catch(() => {});
+		}
 		setRunning(true);
 	}, []);
 
@@ -68,10 +98,10 @@ export default function SpeedAssistant({ onClose }: Props) {
 
 			if (atLeft && lastBeepSideRef.current !== 'left') {
 				lastBeepSideRef.current = 'left';
-				playBeep();
+				if (audioCtxRef.current) playBeep(audioCtxRef.current);
 			} else if (atRight && lastBeepSideRef.current !== 'right') {
 				lastBeepSideRef.current = 'right';
-				playBeep();
+				if (audioCtxRef.current) playBeep(audioCtxRef.current);
 			}
 
 			rafRef.current = requestAnimationFrame(tick);

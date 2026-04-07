@@ -207,8 +207,24 @@ describe('SpeedAssistant – beep on start', () => {
 		await act(async () => {
 			fireEvent.click(screen.getByTestId('start-button'));
 		});
+		// AudioContext is created during start (user gesture) but no oscillator yet
 		expect(mockCreateOscillator).not.toHaveBeenCalled();
-		expect(mockStart).not.toHaveBeenCalled();
+	});
+
+	it('resumes the AudioContext before starting when it is suspended', async () => {
+		// Simulate a suspended context (iOS after inactivity)
+		const mockResume = vi.fn().mockResolvedValue(undefined);
+		(MockAudioContext.prototype as unknown as Record<string, unknown>).state = 'suspended';
+		(MockAudioContext.prototype as unknown as Record<string, unknown>).resume = mockResume;
+
+		renderAssistant();
+		await act(async () => { fireEvent.click(screen.getByTestId('start-button')); });
+
+		expect(mockResume).toHaveBeenCalled();
+
+		// Restore
+		(MockAudioContext.prototype as unknown as Record<string, unknown>).state = 'running';
+		(MockAudioContext.prototype as unknown as Record<string, unknown>).resume = vi.fn();
 	});
 });
 
