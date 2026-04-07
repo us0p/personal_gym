@@ -71,9 +71,7 @@ export default function ExerciseProgressionChart({ username }: Props) {
 		async function loadChartData() {
 			const db = await Database.getInstance();
 			const all = await new ExecutionRepository(db).getAll();
-			const filtered = all.filter(
-				(e) => e.username === username && e.exerciseName === selected,
-			);
+			const filtered = all.filter((e) => e.exerciseName === selected);
 
 			const isCardio = exerciseMap.get(selected)?.type === 'cardio';
 
@@ -91,7 +89,7 @@ export default function ExerciseProgressionChart({ username }: Props) {
 			setChartData(data);
 		}
 		loadChartData();
-	}, [selected, username, exerciseMap]);
+	}, [selected, exerciseMap]);
 
 	if (!ready) return null;
 
@@ -120,7 +118,7 @@ export default function ExerciseProgressionChart({ username }: Props) {
 				)}
 			</div>
 
-			{options.length === 0 || chartData.length < 2 ? (
+			{options.length === 0 || chartData.length === 0 ? (
 				<p className="text-zinc-500 text-xs text-center py-10">No data available yet</p>
 			) : (
 				<ResponsiveContainer width="100%" height={140}>
