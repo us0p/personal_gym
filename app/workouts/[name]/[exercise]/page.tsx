@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import SpeedAssistant from '../../../components/speed-assistant';
 import Database from '../../../core/infra/database';
 import { Exercise, ExerciseType } from '../../../core/entities/exercise/exercise';
 import { Execution } from '../../../core/entities/execution/execution';
@@ -33,6 +34,7 @@ export default function ExerciseLogPage() {
 	const [executions, setExecutions] = useState<Execution[]>([]);
 	const [restMinutes, setRestMinutes] = useState(1);
 	const [restSeconds, setRestSeconds] = useState(30);
+	const [showAssistant, setShowAssistant] = useState(false);
 	const formRef = useRef<HTMLFormElement>(null);
 
 	// Track this as the active exercise for global resume
@@ -97,6 +99,10 @@ export default function ExerciseLogPage() {
 	}
 
 	const totalRestSecs = restMinutes * 60 + restSeconds;
+
+	if (showAssistant) {
+		return <SpeedAssistant onClose={() => setShowAssistant(false)} />;
+	}
 
 	return (
 		<div className="min-h-screen bg-black text-white px-4 pt-14 pb-8">
@@ -199,6 +205,15 @@ export default function ExerciseLogPage() {
 						</form>
 					</div>
 				</div>
+
+				{/* Speed assistant */}
+				<button
+					onClick={() => setShowAssistant(true)}
+					data-testid="open-speed-assistant"
+					className="w-full bg-white text-black font-semibold rounded-2xl py-4 text-base"
+				>
+					Start execution speed assistant
+				</button>
 
 				{/* Logged sets grouped by date */}
 				{executions.length > 0 && (() => {
