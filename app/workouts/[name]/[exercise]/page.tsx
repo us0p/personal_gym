@@ -8,6 +8,7 @@ import { Execution } from '../../../core/entities/execution/execution';
 import { ExecutionRepository } from '../../../core/entities/execution/execution-repository';
 import { ExecutionRestRepository } from '../../../core/entities/execution/execution-rest-repository';
 import { useUser } from '../../../context/user-context';
+import { useTimer } from '../../../context/timer-context';
 
 function formatTime(ts: string) {
 	return new Date(ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
@@ -23,6 +24,8 @@ export default function ExerciseLogPage() {
 	const params = useParams();
 	const router = useRouter();
 	const { user } = useUser();
+	const { isActive: timerActive, timerRemaining, timerTotal, startTimer, cancelTimer, unlockAudio, setActiveExercise } = useTimer();
+
 	const workoutName = decodeURIComponent(params.name as string);
 	const exerciseName = decodeURIComponent(params.exercise as string);
 
@@ -30,52 +33,12 @@ export default function ExerciseLogPage() {
 	const [executions, setExecutions] = useState<Execution[]>([]);
 	const [restMinutes, setRestMinutes] = useState(1);
 	const [restSeconds, setRestSeconds] = useState(30);
-	const [timerRemaining, setTimerRemaining] = useState(0);
-	const [timerActive, setTimerActive] = useState(false);
-	const timerEndRef = useRef<number | null>(null);
-	const audioCtxRef = useRef<AudioContext | null>(null);
 	const formRef = useRef<HTMLFormElement>(null);
 
-	function getOrCreateAudioContext(): AudioContext | null {
-		try {
-			if (!audioCtxRef.current) {
-				const AudioContextClass =
-					window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-				if (!AudioContextClass) return null;
-				audioCtxRef.current = new AudioContextClass();
-			}
-			return audioCtxRef.current;
-		} catch { return null; }
-	}
-
-	function unlockAudio() {
-		const ctx = getOrCreateAudioContext();
-		if (ctx && ctx.state === 'suspended') ctx.resume();
-	}
-
-	function playRestDone() {
-		const ctx = audioCtxRef.current;
-		if (!ctx) return;
-		const doPlay = () => {
-			[0, 0.35, 0.7].forEach((offset) => {
-				const osc = ctx.createOscillator();
-				const gain = ctx.createGain();
-				osc.connect(gain);
-				gain.connect(ctx.destination);
-				osc.type = 'sine';
-				osc.frequency.value = 880;
-				gain.gain.setValueAtTime(0.4, ctx.currentTime + offset);
-				gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.3);
-				osc.start(ctx.currentTime + offset);
-				osc.stop(ctx.currentTime + offset + 0.3);
-			});
-		};
-		if (ctx.state === 'suspended') {
-			ctx.resume().then(doPlay).catch(() => { /* silent fail */ });
-		} else {
-			doPlay();
-		}
-	}
+	// Track this as the active exercise for global resume
+	useEffect(() => {
+		setActiveExercise({ workoutName, exerciseName });
+	}, [workoutName, exerciseName, setActiveExercise]);
 
 	async function loadExecutions() {
 		const db = await Database.getInstance();
@@ -95,46 +58,6 @@ export default function ExerciseLogPage() {
 		}
 		load();
 	}, [workoutName, exerciseName]);
-
-	// ── Timer tick ──────────────────────────────────────────────────────────────
-	useEffect(() => {
-		if (!timerActive) return;
-
-		function tick() {
-			if (timerEndRef.current === null) return;
-			const remaining = Math.max(0, Math.ceil((timerEndRef.current - Date.now()) / 1000));
-			setTimerRemaining(remaining);
-			if (remaining <= 0) {
-				timerEndRef.current = null;
-				setTimerActive(false);
-				playRestDone();
-			}
-		}
-
-		const interval = setInterval(tick, 500);
-
-		function handleVisibility() {
-			if (!document.hidden) tick();
-		}
-		document.addEventListener('visibilitychange', handleVisibility);
-
-		return () => {
-			clearInterval(interval);
-			document.removeEventListener('visibilitychange', handleVisibility);
-		};
-	}, [timerActive]);
-
-	function startTimer(totalSeconds: number) {
-		timerEndRef.current = Date.now() + totalSeconds * 1000;
-		setTimerRemaining(totalSeconds);
-		setTimerActive(true);
-	}
-
-	function cancelTimer() {
-		timerEndRef.current = null;
-		setTimerActive(false);
-		setTimerRemaining(0);
-	}
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
@@ -159,7 +82,7 @@ export default function ExerciseLogPage() {
 				timestamp: new Date().toISOString(),
 				durationSeconds: totalRestSeconds,
 			});
-			startTimer(totalRestSeconds);
+			startTimer(workoutName, exerciseName, totalRestSeconds);
 		}
 
 		formRef.current?.reset();
@@ -181,7 +104,7 @@ export default function ExerciseLogPage() {
 
 				{/* Header */}
 				<div className="flex items-center gap-3">
-					<button onClick={() => router.back()} className="text-zinc-400 text-2xl leading-none">‹</button>
+					<button onClick={() => router.push(`/workouts/${encodeURIComponent(workoutName)}`)} className="text-zinc-400 text-2xl leading-none">‹</button>
 					<div>
 						<h1 className="text-2xl font-bold">{exerciseName}</h1>
 						<p className="text-zinc-500 text-sm mt-0.5">{workoutName}</p>
@@ -204,7 +127,7 @@ export default function ExerciseLogPage() {
 						<div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
 							<div
 								className="h-full bg-white rounded-full transition-all duration-500"
-								style={{ width: `${totalRestSecs > 0 ? (timerRemaining / totalRestSecs) * 100 : 0}%` }}
+								style={{ width: `${timerTotal > 0 ? (timerRemaining / timerTotal) * 100 : 0}%` }}
 							/>
 						</div>
 					</div>

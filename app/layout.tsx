@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import { UserProvider } from "./context/user-context";
+import { TimerProvider } from "./context/timer-context";
 import Nav from "./components/nav";
+import TimerBanner from "./components/timer-banner";
 import SwRegister from "./components/sw-register";
 import PwaInstallButton from "./components/pwa-install-button";
 
@@ -30,8 +32,11 @@ export default function RootLayout({
 			<body className="bg-black text-white min-h-full antialiased">
 				<PwaInstallButton />
 				<UserProvider>
-					<div className="pb-16">{children}</div>
-					<Nav />
+					<TimerProvider>
+						<TimerBanner />
+						<div className="pb-16">{children}</div>
+						<Nav />
+					</TimerProvider>
 				</UserProvider>
 				<SwRegister />
 			</body>

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 function HomeIcon({ active }: { active: boolean }) {
 	return (
@@ -22,7 +23,6 @@ function DumbbellIcon({ active }: { active: boolean }) {
 		</svg>
 	);
 }
-
 
 function BoltIcon({ active }: { active: boolean }) {
 	return (
@@ -50,16 +50,35 @@ const tabs = [
 
 export default function Nav() {
 	const pathname = usePathname();
+	const [lastWorkoutsPath, setLastWorkoutsPath] = useState('/workouts');
+
+	// Hydrate from sessionStorage after mount to avoid SSR mismatch
+	useEffect(() => {
+		try {
+			const stored = sessionStorage.getItem('lastWorkoutsPath');
+			if (stored) setLastWorkoutsPath(stored);
+		} catch {}
+	}, []);
+
+	// Keep lastWorkoutsPath in sync with the current pathname whenever
+	// the user is anywhere inside the workouts section
+	useEffect(() => {
+		if (pathname.startsWith('/workouts')) {
+			setLastWorkoutsPath(pathname);
+			try { sessionStorage.setItem('lastWorkoutsPath', pathname); } catch {}
+		}
+	}, [pathname]);
 
 	return (
 		<nav className="fixed bottom-0 left-0 right-0 bg-zinc-950 border-t border-zinc-800" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
 			<div className="flex items-center justify-around h-16 max-w-lg mx-auto px-1">
 				{tabs.map(({ href, label, Icon, exact }) => {
+					const resolvedHref = href === '/workouts' ? lastWorkoutsPath : href;
 					const active = exact ? pathname === href : pathname.startsWith(href);
 					return (
 						<Link
 							key={href}
-							href={href}
+							href={resolvedHref}
 							className="flex flex-col items-center justify-center gap-1 flex-1 h-full"
 						>
 							<Icon active={active} />

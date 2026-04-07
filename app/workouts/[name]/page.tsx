@@ -37,7 +37,7 @@ export default function WorkoutPage() {
 				{/* Header */}
 				<div className="flex items-start justify-between">
 					<div className="flex items-center gap-3">
-						<button onClick={() => router.back()} className="text-zinc-400 text-2xl leading-none">‹</button>
+						<button onClick={() => router.push('/workouts')} className="text-zinc-400 text-2xl leading-none">‹</button>
 						<div>
 							<h1 className="text-2xl font-bold">{workout.name}</h1>
 							{workout.weekDays && workout.weekDays.length > 0 && (

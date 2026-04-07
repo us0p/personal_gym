@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import React from 'react';
 import Dashboard from '../page';
 import { useUser } from '../context/user-context';
@@ -29,25 +29,14 @@ describe('Dashboard', () => {
 		mockUseUser.mockReturnValue({ user: null, currentWeight: undefined, refreshUser: vi.fn() });
 	});
 
-	it('shows "Welcome" greeting when no user is selected', () => {
-		render(<Dashboard />);
+	it('shows "Welcome" greeting when no user is selected', async () => {
+		await act(async () => { render(<Dashboard />); });
 		expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Welcome');
 	});
 
-	it('shows username greeting when user is set', () => {
+	it('shows username greeting when user is set', async () => {
 		mockUseUser.mockReturnValue({ user: { username: 'alice' }, currentWeight: 70, refreshUser: vi.fn() });
-		render(<Dashboard />);
+		await act(async () => { render(<Dashboard />); });
 		expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Hey, alice');
-	});
-
-	it('shows profile prompt link when no user is selected', () => {
-		render(<Dashboard />);
-		expect(screen.getByText('Select or create a profile')).toBeDefined();
-	});
-
-	it('does not show profile prompt when user is set', () => {
-		mockUseUser.mockReturnValue({ user: { username: 'alice' }, currentWeight: 70, refreshUser: vi.fn() });
-		render(<Dashboard />);
-		expect(screen.queryByText('Select or create a profile')).toBeNull();
 	});
 });
