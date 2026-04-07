@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import Database from '../../../core/infra/database';
 import { Workout, WeekDay } from '../../../core/entities/workout/workout';
 import { WorkoutRepository } from '../../../core/entities/workout/workout-repository';
+import { ExecutionRepository } from '../../../core/entities/execution/execution-repository';
+import { ExecutionRestRepository } from '../../../core/entities/execution/execution-rest-repository';
 import { Exercise } from '../../../core/entities/exercise/exercise';
 import { WEEK_DAYS } from '../../../core/entities/workout/week-day-labels';
 import { inputClass } from '../../../lib/styles';
@@ -48,6 +50,22 @@ export default function EditWorkoutPage() {
 			if (newName !== workout.name) {
 				await repo.delete(workout.name);
 				await repo.add(updated);
+
+				const execRepo = new ExecutionRepository(db);
+				const allExecutions = await execRepo.getAll();
+				for (const exec of allExecutions) {
+					if (exec.workoutName === workout.name) {
+						await db.put('execution', { ...exec, workoutName: newName });
+					}
+				}
+
+				const restRepo = new ExecutionRestRepository(db);
+				const allRests = await restRepo.getAll();
+				for (const rest of allRests) {
+					if (rest.workoutName === workout.name) {
+						await db.put('executionRest', { ...rest, workoutName: newName });
+					}
+				}
 			} else {
 				await repo.update(updated);
 			}

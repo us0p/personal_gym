@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Database from '../../core/infra/database';
 import { Exercise, ExerciseType, BODY_REGIONS } from '../../core/entities/exercise/exercise';
+import { WorkoutRepository } from '../../core/entities/workout/workout-repository';
+import { ExecutionRepository } from '../../core/entities/execution/execution-repository';
 import { inputClass } from '../../lib/styles';
 
 export default function EditExercisePage() {
@@ -37,6 +39,25 @@ export default function EditExercisePage() {
 			if (newName !== exercise.name) {
 				await db.delete('exercise', exercise.name);
 				await db.add('exercise', updated);
+
+				const workoutRepo = new WorkoutRepository(db);
+				const allWorkouts = await workoutRepo.getAll();
+				for (const w of allWorkouts) {
+					if (w.exercises.includes(exercise.name)) {
+						await workoutRepo.update({
+							...w,
+							exercises: w.exercises.map((e) => (e === exercise.name ? newName : e)),
+						});
+					}
+				}
+
+				const execRepo = new ExecutionRepository(db);
+				const allExecutions = await execRepo.getAll();
+				for (const exec of allExecutions) {
+					if (exec.exerciseName === exercise.name) {
+						await db.put('execution', { ...exec, exerciseName: newName });
+					}
+				}
 			} else {
 				await db.put('exercise', updated);
 			}
