@@ -76,7 +76,7 @@ class Database {
 				reject(new DBError('Database upgrade blocked — close other tabs'));
 
 			req.onupgradeneeded = (event: IDBVersionChangeEvent) => {
-				Database.runMigrations(req.result, event.oldVersion, event.newVersion ?? version);
+				Database.runMigrations(req.result, req.transaction!, event.oldVersion, event.newVersion ?? version);
 			};
 
 			req.onsuccess = () => resolve(req.result);
@@ -94,6 +94,7 @@ class Database {
 	 */
 	private static runMigrations(
 		db: IDBDatabase,
+		tx: IDBTransaction,
 		oldVersion: number,
 		newVersion: number,
 	): void {
@@ -102,7 +103,7 @@ class Database {
 		);
 
 		for (const migration of pending) {
-			migration.up(db);
+			migration.up(db, tx);
 		}
 	}
 

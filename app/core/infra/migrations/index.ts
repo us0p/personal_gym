@@ -3,6 +3,7 @@ import migration001 from './001-initial_schema';
 import migration002 from './002-add_exercise_execution';
 import migration003 from './003-add_user_weight_progression';
 import migration004 from './004-add_execution_rest';
+import migration005 from './005-backfill_username';
 import type { Migration } from './types';
 
 /**
@@ -22,6 +23,7 @@ const migrations: Migration[] = [
 	migration002,
 	migration003,
 	migration004,
+	migration005,
 ].sort((a, b) => a.version - b.version);
 
 if (migrations.length !== DATABASE_VERSION) {

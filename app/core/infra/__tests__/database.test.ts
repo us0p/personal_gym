@@ -205,6 +205,59 @@ describe('incremental migrations', () => {
 		dbV4.close();
 	});
 
+	it('migration 005 backfills username on records that are missing the field', async () => {
+		const dbV4 = await Database.createInstance(factory, 4);
+		await dbV4.add('users', { username: 'alice', sex: 'FEMALE', birthDate: new Date('2000-01-01'), height: 165 });
+		await dbV4.add('workout', { name: 'Push Day', exercises: ['Bench Press'] }); // no username
+		await dbV4.add('execution', { workoutName: 'Push Day', exerciseName: 'Bench Press', repNumber: 10, timestamp: new Date().toISOString() }); // no username
+		await dbV4.add('userWeightProgression', { createdAt: new Date('2026-01-01'), weight: 70 }); // no username
+		dbV4.close();
+
+		const dbV5 = await Database.createInstance(factory, 5);
+
+		const [workout] = await dbV5.getAll<{ username?: string }>('workout');
+		expect(workout.username).toBe('alice');
+
+		const [execution] = await dbV5.getAll<{ username?: string }>('execution');
+		expect(execution.username).toBe('alice');
+
+		const [weightEntry] = await dbV5.getAll<{ username?: string }>('userWeightProgression');
+		expect(weightEntry.username).toBe('alice');
+
+		dbV5.close();
+	});
+
+	it('migration 005 does not overwrite records that already have a username', async () => {
+		const dbV4 = await Database.createInstance(factory, 4);
+		await dbV4.add('users', { username: 'alice', sex: 'FEMALE', birthDate: new Date('2000-01-01'), height: 165 });
+		await dbV4.add('workout', { name: 'Push Day', exercises: [], username: 'alice' });
+		await dbV4.add('execution', { workoutName: 'Push Day', exerciseName: 'Bench Press', repNumber: 5, timestamp: new Date().toISOString(), username: 'alice' });
+		dbV4.close();
+
+		const dbV5 = await Database.createInstance(factory, 5);
+
+		const [workout] = await dbV5.getAll<{ username?: string }>('workout');
+		expect(workout.username).toBe('alice');
+
+		const [execution] = await dbV5.getAll<{ username?: string }>('execution');
+		expect(execution.username).toBe('alice');
+
+		dbV5.close();
+	});
+
+	it('migration 005 is a no-op when no user exists', async () => {
+		const dbV4 = await Database.createInstance(factory, 4);
+		await dbV4.add('workout', { name: 'Push Day', exercises: [] }); // no username, no user in db
+		dbV4.close();
+
+		const dbV5 = await Database.createInstance(factory, 5);
+
+		const [workout] = await dbV5.getAll<{ username?: string }>('workout');
+		expect(workout.username).toBeUndefined();
+
+		dbV5.close();
+	});
+
 	it('userWeightProgression supports multiple entries for the same username', async () => {
 		const db = await Database.createInstance(factory);
 

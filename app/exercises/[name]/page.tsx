@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Database from '../../core/infra/database';
 import { Exercise, ExerciseType, BODY_REGIONS } from '../../core/entities/exercise/exercise';
+import { inputClass } from '../../lib/styles';
 
 export default function EditExercisePage() {
 	const params = useParams();
@@ -28,15 +29,21 @@ export default function EditExercisePage() {
 		e.preventDefault();
 		if (!exercise) return;
 		const form = new FormData(e.currentTarget);
+		const newName = (form.get('name') as string).trim();
 		const bodyRegion = type === 'cardio' ? [] : form.getAll('bodyRegion') as string[];
-		const updated: Exercise = {
-			name: exercise.name,
-			type,
-			bodyRegion,
-		};
+		const updated: Exercise = { name: newName, type, bodyRegion };
 		const db = await Database.getInstance();
-		await db.put('exercise', updated);
-		router.push('/exercises');
+		try {
+			if (newName !== exercise.name) {
+				await db.delete('exercise', exercise.name);
+				await db.add('exercise', updated);
+			} else {
+				await db.put('exercise', updated);
+			}
+			router.push('/exercises');
+		} catch {
+			alert('An exercise with that name already exists.');
+		}
 	}
 
 	async function handleDelete() {
@@ -64,10 +71,13 @@ export default function EditExercisePage() {
 				</div>
 
 				<form onSubmit={handleSubmit} className="space-y-5">
-					<div className="bg-zinc-900 rounded-xl px-4 py-3.5">
-						<p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold">Name</p>
-						<p className="text-white font-semibold mt-0.5">{exercise.name}</p>
-					</div>
+					<input
+						required
+						name="name"
+						defaultValue={exercise.name}
+						placeholder="Exercise name"
+						className={inputClass}
+					/>
 
 					<div>
 						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-2 block">Type</label>

@@ -7,6 +7,7 @@ import { Workout, WeekDay } from '../../../core/entities/workout/workout';
 import { WorkoutRepository } from '../../../core/entities/workout/workout-repository';
 import { Exercise } from '../../../core/entities/exercise/exercise';
 import { WEEK_DAYS } from '../../../core/entities/workout/week-day-labels';
+import { inputClass } from '../../../lib/styles';
 
 export default function EditWorkoutPage() {
 	const params = useParams();
@@ -33,17 +34,27 @@ export default function EditWorkoutPage() {
 		e.preventDefault();
 		if (!workout) return;
 		const form = new FormData(e.currentTarget);
+		const newName = (form.get('name') as string).trim();
 		const weekDays = form.getAll('weekDays') as WeekDay[];
 		const updated: Workout = {
-			name: workout.name,
+			name: newName,
 			exercises: form.getAll('exercises') as string[],
 			username: workout.username,
 			weekDays: weekDays.length > 0 ? weekDays : undefined,
 		};
 		const db = await Database.getInstance();
 		const repo = new WorkoutRepository(db);
-		await repo.update(updated);
-		router.push(`/workouts/${encodeURIComponent(workout.name)}`);
+		try {
+			if (newName !== workout.name) {
+				await repo.delete(workout.name);
+				await repo.add(updated);
+			} else {
+				await repo.update(updated);
+			}
+			router.push(`/workouts/${encodeURIComponent(newName)}`);
+		} catch {
+			alert('A workout with that name already exists.');
+		}
 	}
 
 	async function handleDelete() {
@@ -72,10 +83,13 @@ export default function EditWorkoutPage() {
 				</div>
 
 				<form onSubmit={handleSubmit} className="space-y-5">
-					<div className="bg-zinc-900 rounded-xl px-4 py-3.5">
-						<p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold">Name</p>
-						<p className="text-white font-semibold mt-0.5">{workout.name}</p>
-					</div>
+					<input
+						required
+						name="name"
+						defaultValue={workout.name}
+						placeholder="Workout name"
+						className={inputClass}
+					/>
 
 					<div>
 						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3 block">Days of the Week</label>
