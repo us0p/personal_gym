@@ -8,6 +8,7 @@ interface User {
 	sex: SexOptions;
 	birthDate: Date;
 	height: number;
+	locale?: string;
 }
 
 export { SexOptions };

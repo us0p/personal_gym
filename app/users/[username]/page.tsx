@@ -8,12 +8,14 @@ import { UserRepository, UserNotFoundError } from '../../core/entities/user/user
 import { UserWeightRepository } from '../../core/entities/user/user-weight-repository';
 import { UserProfileService, UserProfile } from '../../core/entities/user/user-profile-service';
 import { useUser } from '../../context/user-context';
+import { useLocale } from '../../context/locale-context';
 import { toDateInputValue } from '../utils';
 import { inputClass } from '../../lib/styles';
 
 export default function EditUserPage() {
 	const router = useRouter();
 	const { refreshUser } = useUser();
+	const { t } = useLocale();
 	const [profile, setProfile] = useState<UserProfile | null>(null);
 
 	useEffect(() => {
@@ -50,16 +52,16 @@ export default function EditUserPage() {
 			router.push('/users');
 		} catch (err) {
 			if (err instanceof UserNotFoundError) {
-				alert('No profile found.');
+				alert(t('editProfile.notFound'));
 				router.replace('/users');
 			} else {
-				alert('Failed to save changes. Please try again.');
+				alert(t('editProfile.failed'));
 			}
 		}
 	}
 
 	async function handleDelete() {
-		if (!confirm('Delete your profile? This cannot be undone.')) return;
+		if (!confirm(t('editProfile.deleteConfirm'))) return;
 		const db = await Database.getInstance();
 		const repo = new UserRepository(db);
 		await repo.delete();
@@ -69,7 +71,7 @@ export default function EditUserPage() {
 
 	if (!profile) return (
 		<div className="min-h-screen bg-black flex items-center justify-center">
-			<p className="text-zinc-500">Loading…</p>
+			<p className="text-zinc-500">{t('common.loading')}</p>
 		</div>
 	);
 
@@ -81,18 +83,18 @@ export default function EditUserPage() {
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-3">
 						<button onClick={() => router.back()} className="text-zinc-400 text-2xl leading-none">‹</button>
-						<h1 className="text-2xl font-bold">Edit Profile</h1>
+						<h1 className="text-2xl font-bold">{t('editProfile.title')}</h1>
 					</div>
-					<button onClick={handleDelete} className="text-red-400 text-sm font-medium">Delete</button>
+					<button onClick={handleDelete} className="text-red-400 text-sm font-medium">{t('common.delete')}</button>
 				</div>
 
 				<form onSubmit={handleSubmit} className="space-y-3">
 					<div className="bg-zinc-900 rounded-xl px-4 py-3.5">
-						<p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold">Username</p>
+						<p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold">{t('profile.username')}</p>
 						<p className="text-white font-semibold mt-0.5">{user.username}</p>
 					</div>
 					<div>
-						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-1.5 block">Date of Birth</label>
+						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-1.5 block">{t('editProfile.dateOfBirth')}</label>
 						<input
 							required
 							name="birthDate"
@@ -101,22 +103,22 @@ export default function EditUserPage() {
 							className={`${inputClass} min-w-0`}
 						/>
 					</div>
-					<input required name="height" type="number" min={1} defaultValue={user.height} placeholder="Height (cm)" className={inputClass} />
+					<input required name="height" type="number" min={1} defaultValue={user.height} placeholder={t('editProfile.heightPlaceholder')} className={inputClass} />
 					<input
 						name="weight"
 						type="number"
 						min={1}
 						step="0.1"
 						defaultValue={profile.weight ?? ''}
-						placeholder="Weight (kg)"
+						placeholder={t('editProfile.weightPlaceholder')}
 						className={inputClass}
 					/>
 					<select name="sex" defaultValue={user.sex} className={`${inputClass} appearance-none`}>
-						<option value="MALE">Male</option>
-						<option value="FEMALE">Female</option>
+						<option value="MALE">{t('common.male')}</option>
+						<option value="FEMALE">{t('common.female')}</option>
 					</select>
 					<button type="submit" className="w-full bg-white text-black rounded-xl py-4 font-bold text-base mt-2">
-						Save Changes
+						{t('editProfile.submit')}
 					</button>
 				</form>
 			</div>

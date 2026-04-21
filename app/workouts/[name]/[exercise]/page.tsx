@@ -7,10 +7,9 @@ import Database from '../../../core/infra/database';
 import { Exercise, ExerciseType } from '../../../core/entities/exercise/exercise';
 import { Execution } from '../../../core/entities/execution/execution';
 import { ExecutionRepository } from '../../../core/entities/execution/execution-repository';
-import { ExecutionRestRepository } from '../../../core/entities/execution/execution-rest-repository';
-import { ExecutionSpeedRepository } from '../../../core/entities/execution/execution-speed-repository';
 import { useUser } from '../../../context/user-context';
 import { useTimer } from '../../../context/timer-context';
+import { useLocale } from '../../../context/locale-context';
 
 function formatTime(ts: string) {
 	return new Date(ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
@@ -27,6 +26,7 @@ export default function ExerciseLogPage() {
 	const router = useRouter();
 	const { user } = useUser();
 	const { isActive: timerActive, timerRemaining, timerTotal, startTimer, cancelTimer, unlockAudio, setActiveExercise } = useTimer();
+	const { t } = useLocale();
 
 	const workoutName = decodeURIComponent(params.name as string);
 	const exerciseName = decodeURIComponent(params.exercise as string);
@@ -74,16 +74,10 @@ export default function ExerciseLogPage() {
 
 		const db = await Database.getInstance();
 		const execRepo = new ExecutionRepository(db);
-		const executionId = await execRepo.add(execution);
+		await execRepo.add(execution);
 
 		const totalRestSeconds = restMinutes * 60 + restSeconds;
 		if (totalRestSeconds > 0) {
-			const restRepo = new ExecutionRestRepository(db);
-			await restRepo.add({
-				executionId,
-				timestamp: new Date().toISOString(),
-				durationSeconds: totalRestSeconds,
-			});
 			startTimer(workoutName, exerciseName, totalRestSeconds);
 		}
 
@@ -98,16 +92,8 @@ export default function ExerciseLogPage() {
 		await loadExecutions();
 	}
 
-	const totalRestSecs = restMinutes * 60 + restSeconds;
-
-	async function handleSpeedStart(executionDuration: number) {
-		const db = await Database.getInstance();
-		const speedRepo = new ExecutionSpeedRepository(db);
-		await speedRepo.add({ exerciseName, workoutName, executionDuration });
-	}
-
 	if (showAssistant) {
-		return <SpeedAssistant onClose={() => setShowAssistant(false)} onStart={handleSpeedStart} />;
+		return <SpeedAssistant onClose={() => setShowAssistant(false)} />;
 	}
 
 	return (
@@ -127,9 +113,9 @@ export default function ExerciseLogPage() {
 				{timerActive && (
 					<div className="bg-zinc-900 rounded-2xl p-5 space-y-3 border border-zinc-700">
 						<div className="flex items-center justify-between">
-							<p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold">Rest</p>
+							<p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold">{t('exerciseLog.rest')}</p>
 							<button onClick={cancelTimer} className="text-zinc-500 text-xs font-medium hover:text-zinc-300">
-								Skip
+								{t('exerciseLog.skip')}
 							</button>
 						</div>
 						<p className="text-5xl font-bold tabular-nums text-center tracking-tight">
@@ -149,10 +135,10 @@ export default function ExerciseLogPage() {
 				<div className="bg-zinc-900 rounded-2xl p-4 space-y-4">
 					{/* Rest configuration */}
 					<div>
-						<p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3">Rest after set</p>
+						<p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3">{t('exerciseLog.restAfterSet')}</p>
 						<div className="flex items-center gap-2">
 							<div className="flex-1">
-								<label className="text-xs text-zinc-500 block mb-1">Min</label>
+								<label className="text-xs text-zinc-500 block mb-1">{t('exerciseLog.min')}</label>
 								<input
 									type="number"
 									min={0}
@@ -164,7 +150,7 @@ export default function ExerciseLogPage() {
 							</div>
 							<span className="text-zinc-500 font-bold text-lg mt-4">:</span>
 							<div className="flex-1">
-								<label className="text-xs text-zinc-500 block mb-1">Sec</label>
+								<label className="text-xs text-zinc-500 block mb-1">{t('exerciseLog.sec')}</label>
 								<input
 									type="number"
 									min={0}
@@ -180,7 +166,7 @@ export default function ExerciseLogPage() {
 					{/* Log form */}
 					<div>
 						<p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3">
-							{exerciseType === 'cardio' ? 'Log Session' : 'Log Set'}
+							{exerciseType === 'cardio' ? t('exerciseLog.logSession') : t('exerciseLog.logSet')}
 						</p>
 						<form ref={formRef} onSubmit={handleSubmit} className="flex gap-3">
 							{exerciseType === 'cardio' ? (
@@ -189,7 +175,7 @@ export default function ExerciseLogPage() {
 									name="durationMin"
 									type="number"
 									min={1}
-									placeholder="Duration (min)"
+									placeholder={t('exerciseLog.durationPlaceholder')}
 									className="flex-1 bg-zinc-800 text-white rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-zinc-600 placeholder:text-zinc-500 text-base"
 								/>
 							) : (
@@ -198,7 +184,7 @@ export default function ExerciseLogPage() {
 									name="repNumber"
 									type="number"
 									min={1}
-									placeholder="Reps"
+									placeholder={t('exerciseLog.repsPlaceholder')}
 									className="flex-1 bg-zinc-800 text-white rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-zinc-600 placeholder:text-zinc-500 text-base"
 								/>
 							)}
@@ -206,7 +192,7 @@ export default function ExerciseLogPage() {
 								type="submit"
 								className="bg-white text-black rounded-xl px-6 py-3.5 font-bold text-base shrink-0"
 							>
-								Log
+								{t('exerciseLog.log')}
 							</button>
 						</form>
 					</div>
@@ -218,7 +204,7 @@ export default function ExerciseLogPage() {
 					data-testid="open-speed-assistant"
 					className="w-full bg-white text-black font-semibold rounded-2xl py-4 text-base"
 				>
-					Start execution speed assistant
+					{t('exerciseLog.speedAssistant')}
 				</button>
 
 				{/* Logged sets grouped by date */}
@@ -233,7 +219,7 @@ export default function ExerciseLogPage() {
 					}, {});
 					return (
 						<div className="space-y-4">
-							<p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold px-1">Logged Sets</p>
+							<p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold px-1">{t('exerciseLog.loggedSets')}</p>
 							{Object.entries(grouped).map(([date, entries]) => (
 								<div key={date} className="space-y-2">
 									<p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold px-1">{date}</p>
@@ -241,7 +227,9 @@ export default function ExerciseLogPage() {
 										<div key={ex.id} className="bg-zinc-900 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
 											<div className="min-w-0">
 												<p className="font-semibold">
-													{ex.durationMin !== undefined ? `${ex.durationMin} min` : `${ex.repNumber} reps`}
+													{ex.durationMin !== undefined
+														? `${ex.durationMin} ${t('exerciseLog.minAbbr')}`
+														: `${ex.repNumber} ${t('exerciseLog.reps')}`}
 												</p>
 												<p className="text-zinc-500 text-sm">{formatTime(ex.timestamp)}</p>
 											</div>

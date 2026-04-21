@@ -19,6 +19,22 @@ vi.mock('next/link', () => ({
 		React.createElement('a', { href, className }, children),
 }));
 
+vi.mock('../../context/locale-context', () => ({
+	useLocale: vi.fn(() => ({
+		locale: 'en',
+		setLocale: vi.fn(),
+		t: (key: string) => {
+			const map: Record<string, string> = {
+				'nav.home': 'Home',
+				'nav.workouts': 'Workouts',
+				'nav.exercises': 'Exercises',
+				'nav.profile': 'Profile',
+			};
+			return map[key] ?? key;
+		},
+	})),
+}));
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function workoutsLink(): HTMLAnchorElement {
@@ -169,5 +185,17 @@ describe('Nav – active tab highlight', () => {
 		await act(async () => { render(<Nav />); });
 
 		expect(activeTabLabel()).toBe(expectedTab);
+	});
+});
+
+describe('Nav – translations', () => {
+	it('renders translated tab labels', async () => {
+		mockUsePathname.mockReturnValue('/');
+		await act(async () => { render(<Nav />); });
+
+		expect(screen.getByText('Home')).toBeTruthy();
+		expect(screen.getByText('Workouts')).toBeTruthy();
+		expect(screen.getByText('Exercises')).toBeTruthy();
+		expect(screen.getByText('Profile')).toBeTruthy();
 	});
 });

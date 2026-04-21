@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import { UserProvider } from "./context/user-context";
+import { LocaleProvider } from "./context/locale-context";
 import { TimerProvider } from "./context/timer-context";
 import Nav from "./components/nav";
 import TimerBanner from "./components/timer-banner";
@@ -32,11 +33,13 @@ export default function RootLayout({
 			<body className="bg-black text-white min-h-full antialiased">
 				<PwaInstallButton />
 				<UserProvider>
-					<TimerProvider>
-						<TimerBanner />
-						<div className="pb-16">{children}</div>
-						<Nav />
-					</TimerProvider>
+					<LocaleProvider>
+						<TimerProvider>
+							<TimerBanner />
+							<div className="pb-16">{children}</div>
+							<Nav />
+						</TimerProvider>
+					</LocaleProvider>
 				</UserProvider>
 				<SwRegister />
 			</body>

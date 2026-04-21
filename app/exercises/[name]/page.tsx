@@ -6,11 +6,13 @@ import Database from '../../core/infra/database';
 import { Exercise, ExerciseType, BODY_REGIONS } from '../../core/entities/exercise/exercise';
 import { WorkoutRepository } from '../../core/entities/workout/workout-repository';
 import { ExecutionRepository } from '../../core/entities/execution/execution-repository';
+import { useLocale } from '../../context/locale-context';
 import { inputClass } from '../../lib/styles';
 
 export default function EditExercisePage() {
 	const params = useParams();
 	const router = useRouter();
+	const { t } = useLocale();
 	const name = decodeURIComponent(params.name as string);
 	const [exercise, setExercise] = useState<Exercise | null>(null);
 	const [type, setType] = useState<ExerciseType>('push');
@@ -63,12 +65,12 @@ export default function EditExercisePage() {
 			}
 			router.push('/exercises');
 		} catch {
-			alert('An exercise with that name already exists.');
+			alert(t('editExercise.alreadyExists'));
 		}
 	}
 
 	async function handleDelete() {
-		if (!confirm(`Delete "${name}"?`)) return;
+		if (!confirm(t('editExercise.deleteConfirm', { name }))) return;
 		const db = await Database.getInstance();
 		await db.delete('exercise', name);
 		router.push('/exercises');
@@ -76,7 +78,7 @@ export default function EditExercisePage() {
 
 	if (!exercise) return (
 		<div className="min-h-screen bg-black flex items-center justify-center">
-			<p className="text-zinc-500">Loading…</p>
+			<p className="text-zinc-500">{t('common.loading')}</p>
 		</div>
 	);
 
@@ -86,9 +88,9 @@ export default function EditExercisePage() {
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-3">
 						<button onClick={() => router.back()} className="text-zinc-400 text-2xl leading-none">‹</button>
-						<h1 className="text-2xl font-bold">Edit Exercise</h1>
+						<h1 className="text-2xl font-bold">{t('editExercise.title')}</h1>
 					</div>
-					<button onClick={handleDelete} className="text-red-400 text-sm font-medium">Delete</button>
+					<button onClick={handleDelete} className="text-red-400 text-sm font-medium">{t('common.delete')}</button>
 				</div>
 
 				<form onSubmit={handleSubmit} className="space-y-5">
@@ -96,25 +98,25 @@ export default function EditExercisePage() {
 						required
 						name="name"
 						defaultValue={exercise.name}
-						placeholder="Exercise name"
+						placeholder={t('editExercise.namePlaceholder')}
 						className={inputClass}
 					/>
 
 					<div>
-						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-2 block">Type</label>
+						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-2 block">{t('newExercise.type')}</label>
 						<div className="flex gap-3">
-							{(['push', 'pull', 'cardio'] as const).map((t) => (
-								<label key={t} className="flex-1 cursor-pointer">
+							{(['push', 'pull', 'cardio'] as const).map((ty) => (
+								<label key={ty} className="flex-1 cursor-pointer">
 									<input
 										type="radio"
 										name="type"
-										value={t}
-										checked={type === t}
-										onChange={() => setType(t)}
+										value={ty}
+										checked={type === ty}
+										onChange={() => setType(ty)}
 										className="sr-only peer"
 									/>
 									<div className="text-center py-3.5 rounded-xl bg-zinc-900 text-zinc-400 font-semibold capitalize peer-checked:bg-white peer-checked:text-black transition-colors">
-										{t}
+										{t(`exerciseType.${ty}`)}
 									</div>
 								</label>
 							))}
@@ -123,7 +125,7 @@ export default function EditExercisePage() {
 
 					{type !== 'cardio' && (
 						<div>
-							<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3 block">Body Region</label>
+							<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3 block">{t('newExercise.bodyRegion')}</label>
 							<div className="grid grid-cols-2 gap-2">
 								{BODY_REGIONS.map((region) => (
 									<label key={region} className="flex items-center gap-3 bg-zinc-900 rounded-xl px-4 py-3 cursor-pointer active:bg-zinc-800">
@@ -134,7 +136,7 @@ export default function EditExercisePage() {
 											defaultChecked={exercise.bodyRegion.includes(region)}
 											className="w-4 h-4 accent-white"
 										/>
-										<span className="text-sm font-medium">{region}</span>
+										<span className="text-sm font-medium">{t(`bodyRegion.${region}`)}</span>
 									</label>
 								))}
 							</div>
@@ -142,7 +144,7 @@ export default function EditExercisePage() {
 					)}
 
 					<button type="submit" className="w-full bg-white text-black rounded-xl py-4 font-bold text-base">
-						Save Changes
+						{t('editExercise.submit')}
 					</button>
 				</form>
 			</div>

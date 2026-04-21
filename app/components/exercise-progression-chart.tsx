@@ -6,6 +6,7 @@ import Database from '../core/infra/database';
 import { WorkoutRepository } from '../core/entities/workout/workout-repository';
 import { ExecutionRepository } from '../core/entities/execution/execution-repository';
 import type { Exercise } from '../core/entities/exercise/exercise';
+import { useLocale } from '../context/locale-context';
 
 interface Props {
 	username: string;
@@ -30,6 +31,7 @@ function formatDateKey(key: string): string {
 }
 
 export default function ExerciseProgressionChart({ username }: Props) {
+	const { t } = useLocale();
 	const [options, setOptions] = useState<string[]>([]);
 	const [exerciseMap, setExerciseMap] = useState<Map<string, Exercise>>(new Map());
 	const [selected, setSelected] = useState<string>('');
@@ -94,7 +96,7 @@ export default function ExerciseProgressionChart({ username }: Props) {
 	if (!ready) return null;
 
 	const isCardio = exerciseMap.get(selected)?.type === 'cardio';
-	const unit = isCardio ? 'min' : 'reps';
+	const unit = isCardio ? t('exerciseChart.unitMin') : t('exerciseChart.unitReps');
 
 	const values = chartData.map((d) => d.value);
 	const min = values.length ? Math.min(...values) : 0;
@@ -104,7 +106,7 @@ export default function ExerciseProgressionChart({ username }: Props) {
 	return (
 		<div className="bg-zinc-900 rounded-2xl p-4">
 			<div className="flex items-center justify-between mb-4">
-				<p className="text-zinc-500 text-xs uppercase tracking-widest font-semibold">Volume</p>
+				<p className="text-zinc-500 text-xs uppercase tracking-widest font-semibold">{t('exerciseChart.title')}</p>
 				{options.length > 0 && (
 					<select
 						value={selected}
@@ -119,7 +121,7 @@ export default function ExerciseProgressionChart({ username }: Props) {
 			</div>
 
 			{options.length === 0 || chartData.length === 0 ? (
-				<p className="text-zinc-500 text-xs text-center py-10">No data available yet</p>
+				<p className="text-zinc-500 text-xs text-center py-10">{t('exerciseChart.noData')}</p>
 			) : (
 				<ResponsiveContainer width="100%" height={140}>
 					<LineChart data={chartData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>

@@ -12,6 +12,6 @@
  * The migrations/index.ts module validates this at load time and throws if the
  * values diverge, so mismatches are caught immediately during development and CI.
  */
-const DATABASE_VERSION = 7 as const;
+const DATABASE_VERSION = 8 as const;
 
 export { DATABASE_VERSION };

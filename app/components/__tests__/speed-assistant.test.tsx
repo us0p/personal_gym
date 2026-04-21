@@ -6,6 +6,23 @@ import SpeedAssistant from '../speed-assistant';
 
 // ── mocks ─────────────────────────────────────────────────────────────────────
 
+vi.mock('../../context/locale-context', () => ({
+	useLocale: vi.fn(() => ({
+		locale: 'en',
+		setLocale: vi.fn(),
+		t: (key: string) => {
+			const map: Record<string, string> = {
+				'speedAssistant.back': '← Back',
+				'speedAssistant.title': 'Speed Assistant',
+				'speedAssistant.swingLabel': 'Seconds per swing (one side to the other)',
+				'speedAssistant.start': 'Start',
+				'speedAssistant.stop': 'Stop',
+			};
+			return map[key] ?? key;
+		},
+	})),
+}));
+
 // Web Audio API mock
 const mockStop = vi.fn();
 const mockStart = vi.fn();

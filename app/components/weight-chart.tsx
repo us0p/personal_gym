@@ -2,6 +2,7 @@
 
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts';
 import type { UserWeightEntry } from '../core/entities/user/user-weight-entry';
+import { useLocale } from '../context/locale-context';
 
 interface Props {
 	entries: UserWeightEntry[];
@@ -12,6 +13,7 @@ function formatDate(date: Date | string) {
 }
 
 export default function WeightChart({ entries }: Props) {
+	const { t } = useLocale();
 	const hasData = entries.length >= 2;
 
 	const data = hasData ? entries.map((e) => ({
@@ -26,9 +28,9 @@ export default function WeightChart({ entries }: Props) {
 
 	return (
 		<div className="bg-zinc-900 rounded-2xl p-4">
-			<p className="text-zinc-500 text-xs uppercase tracking-widest font-semibold mb-4">Weight</p>
+			<p className="text-zinc-500 text-xs uppercase tracking-widest font-semibold mb-4">{t('weightChart.title')}</p>
 			{!hasData ? (
-				<p className="text-zinc-500 text-xs text-center py-10">No data available yet</p>
+				<p className="text-zinc-500 text-xs text-center py-10">{t('weightChart.noData')}</p>
 			) : (
 				<ResponsiveContainer width="100%" height={140}>
 					<LineChart data={data} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
@@ -50,7 +52,7 @@ export default function WeightChart({ entries }: Props) {
 							contentStyle={{ background: '#18181b', border: 'none', borderRadius: 8, fontSize: 12 }}
 							labelStyle={{ color: '#a1a1aa' }}
 							itemStyle={{ color: '#ffffff' }}
-							formatter={(v) => [`${v} kg`, '']}
+							formatter={(v) => [t('weightChart.unit', { value: String(v) }), '']}
 						/>
 						<Line
 							type="monotone"

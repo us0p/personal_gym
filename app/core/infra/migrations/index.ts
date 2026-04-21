@@ -6,6 +6,7 @@ import migration004 from './004-add_execution_rest';
 import migration005 from './005-backfill_username';
 import migration006 from './006-add_execution_speed';
 import migration007 from './007-remove_workout_name_from_execution_rest';
+import migration008 from './008-remove_execution_rest_and_speed_stores';
 import type { Migration } from './types';
 
 /**
@@ -28,6 +29,7 @@ const migrations: Migration[] = [
 	migration005,
 	migration006,
 	migration007,
+	migration008,
 ].sort((a, b) => a.version - b.version);
 
 if (migrations.length !== DATABASE_VERSION) {

@@ -7,12 +7,14 @@ import { Workout, WeekDay } from '../../../core/entities/workout/workout';
 import { WorkoutRepository } from '../../../core/entities/workout/workout-repository';
 import { ExecutionRepository } from '../../../core/entities/execution/execution-repository';
 import { Exercise } from '../../../core/entities/exercise/exercise';
+import { useLocale } from '../../../context/locale-context';
 import { WEEK_DAYS } from '../../../core/entities/workout/week-day-labels';
 import { inputClass } from '../../../lib/styles';
 
 export default function EditWorkoutPage() {
 	const params = useParams();
 	const router = useRouter();
+	const { t } = useLocale();
 	const name = decodeURIComponent(params.name as string);
 	const [workout, setWorkout] = useState<Workout | null>(null);
 	const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -63,12 +65,12 @@ export default function EditWorkoutPage() {
 			}
 			router.push(`/workouts/${encodeURIComponent(newName)}`);
 		} catch {
-			alert('A workout with that name already exists.');
+			alert(t('editWorkout.alreadyExists'));
 		}
 	}
 
 	async function handleDelete() {
-		if (!confirm(`Delete "${name}"?`)) return;
+		if (!confirm(t('editWorkout.deleteConfirm', { name }))) return;
 		const db = await Database.getInstance();
 		const repo = new WorkoutRepository(db);
 		await repo.delete(name);
@@ -77,7 +79,7 @@ export default function EditWorkoutPage() {
 
 	if (!workout) return (
 		<div className="min-h-screen bg-black flex items-center justify-center">
-			<p className="text-zinc-500">Loading…</p>
+			<p className="text-zinc-500">{t('common.loading')}</p>
 		</div>
 	);
 
@@ -87,9 +89,9 @@ export default function EditWorkoutPage() {
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-3">
 						<button onClick={() => router.back()} className="text-zinc-400 text-2xl leading-none">‹</button>
-						<h1 className="text-2xl font-bold">Edit Workout</h1>
+						<h1 className="text-2xl font-bold">{t('editWorkout.title')}</h1>
 					</div>
-					<button onClick={handleDelete} className="text-red-400 text-sm font-medium">Delete</button>
+					<button onClick={handleDelete} className="text-red-400 text-sm font-medium">{t('common.delete')}</button>
 				</div>
 
 				<form onSubmit={handleSubmit} className="space-y-5">
@@ -97,12 +99,12 @@ export default function EditWorkoutPage() {
 						required
 						name="name"
 						defaultValue={workout.name}
-						placeholder="Workout name"
+						placeholder={t('editWorkout.namePlaceholder')}
 						className={inputClass}
 					/>
 
 					<div>
-						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3 block">Days of the Week</label>
+						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3 block">{t('editWorkout.daysOfWeek')}</label>
 						<div className="flex gap-2">
 							{WEEK_DAYS.map(({ value, label }) => (
 								<label key={value} className="flex-1 cursor-pointer">
@@ -114,7 +116,7 @@ export default function EditWorkoutPage() {
 										className="sr-only peer"
 									/>
 									<div className="text-center py-2.5 rounded-xl bg-zinc-900 text-zinc-400 text-xs font-semibold peer-checked:bg-white peer-checked:text-black transition-colors">
-										{label}
+										{t(`weekDay.${label}`)}
 									</div>
 								</label>
 							))}
@@ -122,9 +124,9 @@ export default function EditWorkoutPage() {
 					</div>
 
 					<div>
-						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3 block">Exercises</label>
+						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3 block">{t('editWorkout.exercises')}</label>
 						{exercises.length === 0 ? (
-							<p className="text-zinc-500 text-sm">No exercises available.</p>
+							<p className="text-zinc-500 text-sm">{t('editWorkout.noExercises')}</p>
 						) : (
 							<div className="space-y-2">
 								{exercises.map((ex) => (
@@ -139,7 +141,8 @@ export default function EditWorkoutPage() {
 										<div>
 											<p className="text-sm font-semibold">{ex.name}</p>
 											<p className="text-xs text-zinc-500 capitalize">
-												{ex.type}{ex.bodyRegion.length > 0 ? ` · ${ex.bodyRegion.join(', ')}` : ''}
+												{t(`exerciseType.${ex.type}`)}
+												{ex.bodyRegion.length > 0 ? ` · ${ex.bodyRegion.map((r) => t(`bodyRegion.${r}`)).join(', ')}` : ''}
 											</p>
 										</div>
 									</label>
@@ -149,7 +152,7 @@ export default function EditWorkoutPage() {
 					</div>
 
 					<button type="submit" className="w-full bg-white text-black rounded-xl py-4 font-bold text-base">
-						Save Changes
+						{t('editWorkout.submit')}
 					</button>
 				</form>
 			</div>

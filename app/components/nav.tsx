@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useLocale } from '../context/locale-context';
 
 function HomeIcon({ active }: { active: boolean }) {
 	return (
@@ -41,16 +42,17 @@ function PersonIcon({ active }: { active: boolean }) {
 	);
 }
 
-const tabs = [
-	{ href: '/', label: 'Home', Icon: HomeIcon, exact: true },
-	{ href: '/workouts', label: 'Workouts', Icon: DumbbellIcon, exact: false },
-	{ href: '/exercises', label: 'Exercises', Icon: BoltIcon, exact: false },
-	{ href: '/users', label: 'Profile', Icon: PersonIcon, exact: false },
-];
-
 export default function Nav() {
+	const { t } = useLocale();
 	const pathname = usePathname();
 	const [lastWorkoutsPath, setLastWorkoutsPath] = useState('/workouts');
+
+	const tabs = [
+		{ href: '/', labelKey: 'nav.home', Icon: HomeIcon, exact: true },
+		{ href: '/workouts', labelKey: 'nav.workouts', Icon: DumbbellIcon, exact: false },
+		{ href: '/exercises', labelKey: 'nav.exercises', Icon: BoltIcon, exact: false },
+		{ href: '/users', labelKey: 'nav.profile', Icon: PersonIcon, exact: false },
+	];
 
 	// Hydrate from sessionStorage after mount to avoid SSR mismatch
 	useEffect(() => {
@@ -72,7 +74,7 @@ export default function Nav() {
 	return (
 		<nav className="fixed bottom-0 left-0 right-0 bg-zinc-950 border-t border-zinc-800" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
 			<div className="flex items-center justify-around h-16 max-w-lg mx-auto px-1">
-				{tabs.map(({ href, label, Icon, exact }) => {
+				{tabs.map(({ href, labelKey, Icon, exact }) => {
 					const resolvedHref = href === '/workouts' ? lastWorkoutsPath : href;
 					const active = exact ? pathname === href : pathname.startsWith(href);
 					return (
@@ -83,7 +85,7 @@ export default function Nav() {
 						>
 							<Icon active={active} />
 							<span className={`text-[10px] font-medium tracking-wide ${active ? 'text-white' : 'text-zinc-500'}`}>
-								{label}
+								{t(labelKey)}
 							</span>
 						</Link>
 					);

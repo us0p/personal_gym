@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useLocale } from '../context/locale-context';
 
 const MAX_ANGLE = 45;
 const THRESHOLD = MAX_ANGLE - 0.5;
@@ -49,6 +50,7 @@ interface Props {
 }
 
 export default function SpeedAssistant({ onClose, onStart }: Props) {
+	const { t } = useLocale();
 	const [duration, setDuration] = useState(1);
 	const [running, setRunning] = useState(false);
 	const [angle, setAngle] = useState(-MAX_ANGLE);
@@ -128,9 +130,9 @@ export default function SpeedAssistant({ onClose, onStart }: Props) {
 					className="text-zinc-400 bg-zinc-900 rounded-xl px-4 py-2 text-sm font-medium"
 					data-testid="close-button"
 				>
-					← Back
+					{t('speedAssistant.back')}
 				</button>
-				<h2 className="text-white font-bold text-lg">Speed Assistant</h2>
+				<h2 className="text-white font-bold text-lg">{t('speedAssistant.title')}</h2>
 				<div className="w-16" />
 			</div>
 
@@ -177,7 +179,7 @@ export default function SpeedAssistant({ onClose, onStart }: Props) {
 				{/* Duration input */}
 				<div className="bg-zinc-900 rounded-2xl p-4">
 					<label className="text-zinc-400 text-sm block mb-2">
-						Seconds per swing (one side to the other)
+						{t('speedAssistant.swingLabel')}
 					</label>
 					<input
 						type="number"
@@ -202,7 +204,7 @@ export default function SpeedAssistant({ onClose, onStart }: Props) {
 						data-testid="start-button"
 						className="bg-white text-black font-semibold rounded-2xl py-4 text-base disabled:opacity-40"
 					>
-						Start
+						{t('speedAssistant.start')}
 					</button>
 					<button
 						onClick={stop}
@@ -210,7 +212,7 @@ export default function SpeedAssistant({ onClose, onStart }: Props) {
 						data-testid="stop-button"
 						className="bg-zinc-800 text-white font-semibold rounded-2xl py-4 text-base disabled:opacity-40"
 					>
-						Stop
+						{t('speedAssistant.stop')}
 					</button>
 				</div>
 			</div>

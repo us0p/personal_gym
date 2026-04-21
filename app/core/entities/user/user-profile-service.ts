@@ -71,7 +71,7 @@ class UserProfileService {
 		const user = await this.userRepo.get();
 		if (!user) throw new UserNotFoundError();
 		const { weight, ...profileData } = input;
-		await this.userRepo.update({ username: user.username, ...profileData });
+		await this.userRepo.update({ ...user, ...profileData });
 		if (weight !== undefined) {
 			await this.weightRepo.add({
 				username: user.username,

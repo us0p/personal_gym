@@ -6,11 +6,12 @@ import Link from 'next/link';
 import Database from '../../core/infra/database';
 import { Workout } from '../../core/entities/workout/workout';
 import { WorkoutRepository } from '../../core/entities/workout/workout-repository';
-import { DAY_LABEL_LONG } from '../../core/entities/workout/week-day-labels';
+import { useLocale } from '../../context/locale-context';
 
 export default function WorkoutPage() {
 	const params = useParams();
 	const router = useRouter();
+	const { t } = useLocale();
 	const workoutName = decodeURIComponent(params.name as string);
 	const [workout, setWorkout] = useState<Workout | null>(null);
 
@@ -26,7 +27,7 @@ export default function WorkoutPage() {
 
 	if (!workout) return (
 		<div className="min-h-screen bg-black flex items-center justify-center">
-			<p className="text-zinc-500">Loading…</p>
+			<p className="text-zinc-500">{t('common.loading')}</p>
 		</div>
 	);
 
@@ -42,7 +43,7 @@ export default function WorkoutPage() {
 							<h1 className="text-2xl font-bold">{workout.name}</h1>
 							{workout.weekDays && workout.weekDays.length > 0 && (
 								<p className="text-zinc-500 text-sm mt-0.5">
-									{workout.weekDays.map((d) => DAY_LABEL_LONG[d]).join(', ')}
+									{workout.weekDays.map((d) => t(`weekDayLong.${d}`)).join(', ')}
 								</p>
 							)}
 						</div>
@@ -51,24 +52,24 @@ export default function WorkoutPage() {
 						href={`/workouts/${encodeURIComponent(workout.name)}/edit`}
 						className="text-sm text-zinc-400 font-medium mt-1"
 					>
-						Edit
+						{t('common.edit')}
 					</Link>
 				</div>
 
 				{/* Exercise list */}
 				{workout.exercises.length === 0 ? (
 					<div className="bg-zinc-900 rounded-2xl p-6 text-center space-y-2">
-						<p className="text-zinc-400 text-sm">No exercises in this workout yet.</p>
+						<p className="text-zinc-400 text-sm">{t('workoutDetail.noExercises')}</p>
 						<Link
 							href={`/workouts/${encodeURIComponent(workout.name)}/edit`}
 							className="text-white text-sm underline"
 						>
-							Add exercises
+							{t('workoutDetail.addExercises')}
 						</Link>
 					</div>
 				) : (
 					<div className="space-y-2">
-						<p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold px-1">Exercises</p>
+						<p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold px-1">{t('workoutDetail.exercises')}</p>
 						{workout.exercises.map((exercise) => (
 							<Link
 								key={exercise}

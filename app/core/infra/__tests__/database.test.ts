@@ -74,9 +74,11 @@ describe('fresh install (v0 → latest)', () => {
 	it('creates all required stores', async () => {
 		const db = await Database.createInstance(factory);
 
-		for (const store of ['users', 'workout', 'exercise', 'execution', 'userWeightProgression', 'executionRest', 'executionSpeed']) {
+		for (const store of ['users', 'workout', 'exercise', 'execution', 'userWeightProgression']) {
 			expect(await storeExists(db, store)).toBe(true);
 		}
+		expect(await storeExists(db, 'executionRest')).toBe(false);
+		expect(await storeExists(db, 'executionSpeed')).toBe(false);
 
 		db.close();
 	});
@@ -287,6 +289,23 @@ describe('incremental migrations', () => {
 		expect(records).toHaveLength(1);
 		expect(records[0]).not.toHaveProperty('workoutName');
 		dbV7.close();
+	});
+
+	it('migration 008 drops executionRest and executionSpeed stores', async () => {
+		const dbV7 = await Database.createInstance(factory, 7);
+		expect(await storeExists(dbV7, 'executionRest')).toBe(true);
+		expect(await storeExists(dbV7, 'executionSpeed')).toBe(true);
+		dbV7.close();
+
+		const dbV8 = await Database.createInstance(factory, 8);
+		expect(await storeExists(dbV8, 'executionRest')).toBe(false);
+		expect(await storeExists(dbV8, 'executionSpeed')).toBe(false);
+
+		for (const store of ['users', 'workout', 'exercise', 'execution', 'userWeightProgression']) {
+			expect(await storeExists(dbV8, store)).toBe(true);
+		}
+
+		dbV8.close();
 	});
 
 	it('migration 005 is a no-op when no user exists', async () => {
