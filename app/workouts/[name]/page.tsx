@@ -70,13 +70,13 @@ export default function WorkoutPage() {
 				) : (
 					<div className="space-y-2">
 						<p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold px-1">{t('workoutDetail.exercises')}</p>
-						{workout.exercises.map((exercise) => (
+						{workout.exercises.map((we) => (
 							<Link
-								key={exercise}
-								href={`/workouts/${encodeURIComponent(workout.name)}/${encodeURIComponent(exercise)}`}
+								key={we.name}
+								href={`/workouts/${encodeURIComponent(workout.name)}/${encodeURIComponent(we.name)}`}
 								className="flex items-center justify-between bg-zinc-900 rounded-2xl px-4 py-4"
 							>
-								<p className="font-semibold">{exercise}</p>
+								<p className="font-semibold">{we.name}</p>
 								<span className="text-zinc-500 text-xl leading-none">›</span>
 							</Link>
 						))}

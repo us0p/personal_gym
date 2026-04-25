@@ -6,7 +6,9 @@ import { useLocale } from './context/locale-context';
 import { LOCALES, type Locale } from './i18n/translations';
 import Database from './core/infra/database';
 import { UserWeightRepository } from './core/entities/user/user-weight-repository';
+import { UserStrikeRepository } from './core/entities/user/user-strike-repository';
 import type { UserWeightEntry } from './core/entities/user/user-weight-entry';
+import type { UserStrike } from './core/entities/user/user-strike';
 import WeightChart from './components/weight-chart';
 import ExerciseProgressionChart from './components/exercise-progression-chart';
 
@@ -98,15 +100,20 @@ export default function Dashboard() {
 	const { user } = useUser();
 	const { t } = useLocale();
 	const [weightHistory, setWeightHistory] = useState<UserWeightEntry[]>([]);
+	const [strike, setStrike] = useState<UserStrike | null>(null);
 
 	useEffect(() => {
 		if (!user) return;
-		async function loadWeightHistory() {
+		async function loadData() {
 			const db = await Database.getInstance();
-			const entries = await new UserWeightRepository(db).getAllByUser(user!.username);
+			const [entries, userStrike] = await Promise.all([
+				new UserWeightRepository(db).getAllByUser(user!.username),
+				new UserStrikeRepository(db).get(user!.username),
+			]);
 			setWeightHistory(entries);
+			setStrike(userStrike ?? null);
 		}
-		loadWeightHistory();
+		loadData();
 	}, [user]);
 
 	return (
@@ -121,6 +128,17 @@ export default function Dashboard() {
 					</div>
 					<LanguagePicker />
 				</div>
+
+				{user && (
+					<div className="flex items-center gap-4 bg-zinc-900 rounded-2xl px-5 py-4">
+						<div className="flex-1">
+							<p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold">{t('home.strike')}</p>
+							<p className="text-4xl font-bold tabular-nums mt-1">{t('home.strikeCount', { count: strike?.strikeCount ?? 0 })}</p>
+							<p className="text-xs text-zinc-500 mt-1">{t('home.maxStrike', { max: strike?.maxStrike ?? 0 })}</p>
+						</div>
+						<span className="text-4xl select-none">🔥</span>
+					</div>
+				)}
 
 				<WeightChart entries={weightHistory} />
 

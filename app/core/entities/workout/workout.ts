@@ -1,3 +1,5 @@
+import type { ExerciseMetric } from '../exercise/exercise';
+
 enum WeekDay {
 	MONDAY = 'MONDAY',
 	TUESDAY = 'TUESDAY',
@@ -8,12 +10,17 @@ enum WeekDay {
 	SUNDAY = 'SUNDAY',
 }
 
+interface WorkoutExercise {
+	name: string;
+	metrics: ExerciseMetric[];
+}
+
 interface Workout {
 	name: string;
-	exercises: string[];
+	exercises: WorkoutExercise[];
 	username: string;
 	weekDays?: WeekDay[];
 }
 
 export { WeekDay };
-export type { Workout };
+export type { Workout, WorkoutExercise };

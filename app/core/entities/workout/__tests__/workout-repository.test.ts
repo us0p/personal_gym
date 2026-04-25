@@ -8,7 +8,9 @@ let factory: IDBFactory;
 let db: Database;
 let repo: WorkoutRepository;
 
-const base = { username: 'alice', exercises: [] as string[] };
+import type { WorkoutExercise } from '../workout';
+
+const base = { username: 'alice', exercises: [] as WorkoutExercise[] };
 
 beforeEach(async () => {
 	factory = new IDBFactory();
@@ -146,9 +148,13 @@ describe('update()', () => {
 
 	it('updates the exercises list', async () => {
 		await repo.add({ ...base, name: 'Push Day' });
-		await repo.update({ ...base, name: 'Push Day', exercises: ['Bench Press', 'OHP'] });
+		const exercises: WorkoutExercise[] = [
+			{ name: 'Bench Press', metrics: ['reps'] },
+			{ name: 'OHP', metrics: ['reps', 'weight'] },
+		];
+		await repo.update({ ...base, name: 'Push Day', exercises });
 		const found = await repo.get('Push Day');
-		expect(found?.exercises).toEqual(['Bench Press', 'OHP']);
+		expect(found?.exercises).toEqual(exercises);
 	});
 });
 

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Database from '../../core/infra/database';
-import { Exercise, ExerciseType, BODY_REGIONS } from '../../core/entities/exercise/exercise';
+import { Exercise, ExerciseType, BODY_REGIONS_BY_TYPE } from '../../core/entities/exercise/exercise';
 import { useLocale } from '../../context/locale-context';
 
 export default function NewExercisePage() {
@@ -52,7 +52,7 @@ export default function NewExercisePage() {
 					<div>
 						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-2 block">{t('newExercise.type')}</label>
 						<div className="flex gap-3">
-							{(['push', 'pull', 'cardio'] as const).map((ty) => (
+							{(['push', 'pull', 'static', 'cardio'] as const).map((ty) => (
 								<label key={ty} className="flex-1 cursor-pointer">
 									<input
 										type="radio"
@@ -73,8 +73,8 @@ export default function NewExercisePage() {
 					{type !== 'cardio' && (
 						<div>
 							<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3 block">{t('newExercise.bodyRegion')}</label>
-							<div className="grid grid-cols-2 gap-2">
-								{BODY_REGIONS.map((region) => (
+							<div key={type} className="grid grid-cols-2 gap-2">
+								{BODY_REGIONS_BY_TYPE[type].map((region) => (
 									<label key={region} className="flex items-center gap-3 bg-zinc-900 rounded-xl px-4 py-3 cursor-pointer active:bg-zinc-800">
 										<input type="checkbox" name="bodyRegion" value={region} className="w-4 h-4 accent-white" />
 										<span className="text-sm font-medium">{t(`bodyRegion.${region}`)}</span>

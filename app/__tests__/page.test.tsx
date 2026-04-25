@@ -18,6 +18,7 @@ vi.mock('../context/locale-context', () => ({
 vi.mock('../core/infra/database', () => ({
 	default: {
 		getInstance: vi.fn().mockResolvedValue({
+			get: vi.fn().mockResolvedValue(undefined),
 			getAll: vi.fn().mockResolvedValue([]),
 		}),
 	},

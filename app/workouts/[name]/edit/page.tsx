@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Database from '../../../core/infra/database';
-import { Workout, WeekDay } from '../../../core/entities/workout/workout';
+import { Workout, WeekDay, WorkoutExercise } from '../../../core/entities/workout/workout';
 import { WorkoutRepository } from '../../../core/entities/workout/workout-repository';
 import { ExecutionRepository } from '../../../core/entities/execution/execution-repository';
-import { Exercise } from '../../../core/entities/exercise/exercise';
+import { Exercise, ExerciseMetric, METRICS_BY_TYPE } from '../../../core/entities/exercise/exercise';
 import { useLocale } from '../../../context/locale-context';
 import { WEEK_DAYS } from '../../../core/entities/workout/week-day-labels';
 import { inputClass } from '../../../lib/styles';
@@ -18,6 +18,7 @@ export default function EditWorkoutPage() {
 	const name = decodeURIComponent(params.name as string);
 	const [workout, setWorkout] = useState<Workout | null>(null);
 	const [exercises, setExercises] = useState<Exercise[]>([]);
+	const [exerciseMetrics, setExerciseMetrics] = useState<Map<string, ExerciseMetric[]>>(new Map());
 
 	useEffect(() => {
 		async function load() {
@@ -29,9 +30,38 @@ export default function EditWorkoutPage() {
 			]);
 			setWorkout(found ?? null);
 			setExercises(allExercises);
+			if (found) {
+				setExerciseMetrics(new Map(found.exercises.map((we) => [we.name, we.metrics])));
+			}
 		}
 		load();
 	}, [name]);
+
+	function toggleExercise(ex: Exercise, checked: boolean) {
+		setExerciseMetrics((prev) => {
+			const next = new Map(prev);
+			if (checked) {
+				const available = METRICS_BY_TYPE[ex.type];
+				next.set(ex.name, [available[0]]);
+			} else {
+				next.delete(ex.name);
+			}
+			return next;
+		});
+	}
+
+	function toggleMetric(exerciseName: string, metric: ExerciseMetric, currentMetrics: ExerciseMetric[]) {
+		setExerciseMetrics((prev) => {
+			const next = new Map(prev);
+			if (currentMetrics.includes(metric)) {
+				if (currentMetrics.length === 1) return prev;
+				next.set(exerciseName, currentMetrics.filter((m) => m !== metric));
+			} else {
+				next.set(exerciseName, [...currentMetrics, metric]);
+			}
+			return next;
+		});
+	}
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
@@ -39,9 +69,12 @@ export default function EditWorkoutPage() {
 		const form = new FormData(e.currentTarget);
 		const newName = (form.get('name') as string).trim();
 		const weekDays = form.getAll('weekDays') as WeekDay[];
+		const workoutExercises: WorkoutExercise[] = Array.from(exerciseMetrics.entries()).map(
+			([exName, metrics]) => ({ name: exName, metrics }),
+		);
 		const updated: Workout = {
 			name: newName,
-			exercises: form.getAll('exercises') as string[],
+			exercises: workoutExercises,
 			username: workout.username,
 			weekDays: weekDays.length > 0 ? weekDays : undefined,
 		};
@@ -59,7 +92,6 @@ export default function EditWorkoutPage() {
 						await db.put('execution', { ...exec, workoutName: newName });
 					}
 				}
-
 			} else {
 				await repo.update(updated);
 			}
@@ -129,24 +161,47 @@ export default function EditWorkoutPage() {
 							<p className="text-zinc-500 text-sm">{t('editWorkout.noExercises')}</p>
 						) : (
 							<div className="space-y-2">
-								{exercises.map((ex) => (
-									<label key={ex.name} className="flex items-center gap-3 bg-zinc-900 rounded-xl px-4 py-3.5 cursor-pointer active:bg-zinc-800">
-										<input
-											type="checkbox"
-											name="exercises"
-											value={ex.name}
-											defaultChecked={workout.exercises.includes(ex.name)}
-											className="w-4 h-4 accent-white"
-										/>
-										<div>
-											<p className="text-sm font-semibold">{ex.name}</p>
-											<p className="text-xs text-zinc-500 capitalize">
-												{t(`exerciseType.${ex.type}`)}
-												{ex.bodyRegion.length > 0 ? ` · ${ex.bodyRegion.map((r) => t(`bodyRegion.${r}`)).join(', ')}` : ''}
-											</p>
+								{exercises.map((ex) => {
+									const isSelected = exerciseMetrics.has(ex.name);
+									const selectedMetrics = exerciseMetrics.get(ex.name) ?? [];
+									const availableMetrics = METRICS_BY_TYPE[ex.type];
+									return (
+										<div key={ex.name} className="bg-zinc-900 rounded-xl overflow-hidden">
+											<label className="flex items-center gap-3 px-4 py-3.5 cursor-pointer active:bg-zinc-800">
+												<input
+													type="checkbox"
+													checked={isSelected}
+													onChange={(e) => toggleExercise(ex, e.target.checked)}
+													className="w-4 h-4 accent-white shrink-0"
+												/>
+												<div>
+													<p className="text-sm font-semibold">{ex.name}</p>
+													<p className="text-xs text-zinc-500 capitalize">
+														{t(`exerciseType.${ex.type}`)}
+														{ex.bodyRegion.length > 0 ? ` · ${ex.bodyRegion.map((r) => t(`bodyRegion.${r}`)).join(', ')}` : ''}
+													</p>
+												</div>
+											</label>
+											{isSelected && (
+												<div className="px-4 pb-3 flex gap-2 flex-wrap">
+													{availableMetrics.map((metric) => {
+														const active = selectedMetrics.includes(metric);
+														return (
+															<button
+																key={metric}
+																type="button"
+																onClick={() => toggleMetric(ex.name, metric, selectedMetrics)}
+																className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors ${active ? 'bg-white text-black' : 'bg-zinc-800 text-zinc-400'}`}
+															>
+																{t(`metric.${metric}`)}
+															</button>
+														);
+													})}
+												</div>
+											)}
 										</div>
-									</label>
-								))}
+									);
+								})}
 							</div>
 						)}
 					</div>

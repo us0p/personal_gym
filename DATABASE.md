@@ -57,3 +57,10 @@ Here's a list of the available object stores, their purposes and their relations
     - workoutName: string
     - executionDuration: number
 
+- userStrike
+    - id: number [unique]
+    - username: string
+    - strikeCount: int [default 0]
+    - maxStrike: int [default 0]
+    - updatedAt: date
+

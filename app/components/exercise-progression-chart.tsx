@@ -5,7 +5,8 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from 'rec
 import Database from '../core/infra/database';
 import { WorkoutRepository } from '../core/entities/workout/workout-repository';
 import { ExecutionRepository } from '../core/entities/execution/execution-repository';
-import type { Exercise } from '../core/entities/exercise/exercise';
+import type { Execution } from '../core/entities/execution/execution';
+import type { ExerciseMetric } from '../core/entities/exercise/exercise';
 import { useLocale } from '../context/locale-context';
 
 interface Props {
@@ -30,11 +31,27 @@ function formatDateKey(key: string): string {
 	return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
+function getMetricValue(ex: Execution, metric: ExerciseMetric): number | undefined {
+	switch (metric) {
+		case 'reps': return ex.repNumber;
+		case 'weight': return ex.weightKg;
+		case 'duration': return ex.durationMin;
+		case 'time': return ex.durationSec;
+		case 'distance': return ex.distanceKm;
+	}
+}
+
+function detectMetrics(executions: Execution[]): ExerciseMetric[] {
+	const all: ExerciseMetric[] = ['reps', 'weight', 'duration', 'time', 'distance'];
+	return all.filter((m) => executions.some((e) => getMetricValue(e, m) !== undefined));
+}
+
 export default function ExerciseProgressionChart({ username }: Props) {
 	const { t } = useLocale();
 	const [options, setOptions] = useState<string[]>([]);
-	const [exerciseMap, setExerciseMap] = useState<Map<string, Exercise>>(new Map());
 	const [selected, setSelected] = useState<string>('');
+	const [availableMetrics, setAvailableMetrics] = useState<ExerciseMetric[]>([]);
+	const [selectedMetric, setSelectedMetric] = useState<ExerciseMetric | null>(null);
 	const [chartData, setChartData] = useState<ChartPoint[]>([]);
 	const [ready, setReady] = useState(false);
 
@@ -47,18 +64,14 @@ export default function ExerciseProgressionChart({ username }: Props) {
 				const seen = new Set<string>();
 				const names: string[] = [];
 				for (const w of workouts) {
-					for (const ex of w.exercises) {
-						if (!seen.has(ex)) {
-							seen.add(ex);
-							names.push(ex);
+					for (const we of w.exercises) {
+						if (!seen.has(we.name)) {
+							seen.add(we.name);
+							names.push(we.name);
 						}
 					}
 				}
 
-				const allExercises = await db.getAll<Exercise>('exercise');
-				const map = new Map(allExercises.map((e) => [e.name, e]));
-
-				setExerciseMap(map);
 				setOptions(names);
 				setSelected(names[0] ?? '');
 			} finally {
@@ -75,28 +88,55 @@ export default function ExerciseProgressionChart({ username }: Props) {
 			const all = await new ExecutionRepository(db).getAll();
 			const filtered = all.filter((e) => e.exerciseName === selected);
 
-			const isCardio = exerciseMap.get(selected)?.type === 'cardio';
+			const metrics = detectMetrics(filtered);
+			setAvailableMetrics(metrics);
 
-			const byDate = new Map<string, number>();
-			for (const e of filtered) {
-				const key = toLocalDateKey(e.timestamp);
-				const val = isCardio ? (e.durationMin ?? 0) : (e.repNumber ?? 0);
-				byDate.set(key, (byDate.get(key) ?? 0) + val);
+			const metric = metrics[0] ?? null;
+			setSelectedMetric((prev) => (prev && metrics.includes(prev) ? prev : metric));
+
+			if (!metric) {
+				setChartData([]);
+				return;
 			}
 
-			const data = Array.from(byDate.entries())
-				.sort(([a], [b]) => a.localeCompare(b))
-				.map(([key, value]) => ({ date: formatDateKey(key), value }));
-
-			setChartData(data);
+			buildChart(filtered, metric);
 		}
 		loadChartData();
-	}, [selected, exerciseMap]);
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [selected]);
+
+	function buildChart(executions: Execution[], metric: ExerciseMetric) {
+		const byDate = new Map<string, number>();
+		for (const e of executions) {
+			const val = getMetricValue(e, metric);
+			if (val === undefined) continue;
+			const key = toLocalDateKey(e.timestamp);
+			byDate.set(key, Math.max(byDate.get(key) ?? 0, val));
+		}
+		const data = Array.from(byDate.entries())
+			.sort(([a], [b]) => a.localeCompare(b))
+			.map(([key, value]) => ({ date: formatDateKey(key), value }));
+		setChartData(data);
+	}
+
+	async function handleMetricChange(metric: ExerciseMetric) {
+		setSelectedMetric(metric);
+		const db = await Database.getInstance();
+		const all = await new ExecutionRepository(db).getAll();
+		const filtered = all.filter((e) => e.exerciseName === selected);
+		buildChart(filtered, metric);
+	}
 
 	if (!ready) return null;
 
-	const isCardio = exerciseMap.get(selected)?.type === 'cardio';
-	const unit = isCardio ? t('exerciseChart.unitMin') : t('exerciseChart.unitReps');
+	const unitKey: Record<ExerciseMetric, string> = {
+		reps: t('exerciseChart.unitReps'),
+		weight: t('exerciseChart.unitKg'),
+		duration: t('exerciseChart.unitMin'),
+		time: t('exerciseChart.unitSec'),
+		distance: t('exerciseChart.unitKm'),
+	};
+	const unit = selectedMetric ? unitKey[selectedMetric] : '';
 
 	const values = chartData.map((d) => d.value);
 	const min = values.length ? Math.min(...values) : 0;
@@ -105,7 +145,7 @@ export default function ExerciseProgressionChart({ username }: Props) {
 
 	return (
 		<div className="bg-zinc-900 rounded-2xl p-4">
-			<div className="flex items-center justify-between mb-4">
+			<div className="flex items-center justify-between mb-3">
 				<p className="text-zinc-500 text-xs uppercase tracking-widest font-semibold">{t('exerciseChart.title')}</p>
 				{options.length > 0 && (
 					<select
@@ -119,6 +159,20 @@ export default function ExerciseProgressionChart({ username }: Props) {
 					</select>
 				)}
 			</div>
+
+			{availableMetrics.length > 1 && (
+				<div className="flex gap-2 mb-3 flex-wrap">
+					{availableMetrics.map((m) => (
+						<button
+							key={m}
+							onClick={() => handleMetricChange(m)}
+							className={`text-xs px-3 py-1 rounded-lg font-semibold transition-colors ${m === selectedMetric ? 'bg-white text-black' : 'bg-zinc-800 text-zinc-400'}`}
+						>
+							{t(`metric.${m}`)}
+						</button>
+					))}
+				</div>
+			)}
 
 			{options.length === 0 || chartData.length === 0 ? (
 				<p className="text-zinc-500 text-xs text-center py-10">{t('exerciseChart.noData')}</p>

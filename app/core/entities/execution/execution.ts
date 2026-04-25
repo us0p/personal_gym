@@ -3,7 +3,10 @@ interface Execution {
 	workoutName: string;
 	exerciseName: string;
 	repNumber?: number;
+	weightKg?: number;
 	durationMin?: number;
+	durationSec?: number;
+	distanceKm?: number;
 	timestamp: string;
 	username: string;
 }

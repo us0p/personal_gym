@@ -8,6 +8,7 @@ import Nav from "./components/nav";
 import TimerBanner from "./components/timer-banner";
 import SwRegister from "./components/sw-register";
 import PwaInstallButton from "./components/pwa-install-button";
+import { ToastProvider } from "./context/toast-context";
 
 const geistSans = Geist({
 	variable: "--font-geist-sans",
@@ -35,9 +36,11 @@ export default function RootLayout({
 				<UserProvider>
 					<LocaleProvider>
 						<TimerProvider>
-							<TimerBanner />
-							<div className="pb-16">{children}</div>
-							<Nav />
+							<ToastProvider>
+								<TimerBanner />
+								<div className="pb-16">{children}</div>
+								<Nav />
+							</ToastProvider>
 						</TimerProvider>
 					</LocaleProvider>
 				</UserProvider>

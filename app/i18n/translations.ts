@@ -29,6 +29,10 @@ const translations: Record<Locale, TranslationDict> = {
 		// Home / Dashboard
 		'home.welcome': 'Welcome',
 		'home.greeting': 'Hey, {username}',
+		'home.strike': 'Streak',
+		'home.strikeCount': '{count}',
+		'home.maxStrike': 'Best: {max}',
+		'home.strikeNotification': '🔥 Streak {count}! Keep it up, {username}!',
 
 		// Profile view
 		'profile.title': 'Profile',
@@ -115,6 +119,12 @@ const translations: Record<Locale, TranslationDict> = {
 		'exerciseLog.loggedSets': 'Logged Sets',
 		'exerciseLog.minAbbr': 'min',
 		'exerciseLog.reps': 'reps',
+		'exerciseLog.weightPlaceholder': 'Weight (kg)',
+		'exerciseLog.timePlaceholder': 'Hold (sec)',
+		'exerciseLog.distancePlaceholder': 'Distance (km)',
+		'exerciseLog.kg': 'kg',
+		'exerciseLog.secAbbr': 'sec',
+		'exerciseLog.km': 'km',
 
 		// Exercises list
 		'exercises.title': 'Exercises',
@@ -146,6 +156,15 @@ const translations: Record<Locale, TranslationDict> = {
 		'exerciseChart.noData': 'No data available yet',
 		'exerciseChart.unitMin': 'min',
 		'exerciseChart.unitReps': 'reps',
+		'exerciseChart.unitKg': 'kg',
+		'exerciseChart.unitSec': 'sec',
+		'exerciseChart.unitKm': 'km',
+
+		'metric.reps': 'Reps',
+		'metric.weight': 'Weight',
+		'metric.time': 'Hold time',
+		'metric.duration': 'Duration',
+		'metric.distance': 'Distance',
 
 		// Speed assistant
 		'speedAssistant.back': '← Back',
@@ -157,6 +176,7 @@ const translations: Record<Locale, TranslationDict> = {
 		// Exercise types
 		'exerciseType.push': 'push',
 		'exerciseType.pull': 'pull',
+		'exerciseType.static': 'static',
 		'exerciseType.cardio': 'cardio',
 
 		// Body regions
@@ -214,6 +234,10 @@ const translations: Record<Locale, TranslationDict> = {
 		// Home / Dashboard
 		'home.welcome': 'Bem-vindo',
 		'home.greeting': 'Olá, {username}',
+		'home.strike': 'Sequência',
+		'home.strikeCount': '{count}',
+		'home.maxStrike': 'Melhor: {max}',
+		'home.strikeNotification': '🔥 Sequência {count}! Continue assim, {username}!',
 
 		// Profile view
 		'profile.title': 'Perfil',
@@ -300,6 +324,12 @@ const translations: Record<Locale, TranslationDict> = {
 		'exerciseLog.loggedSets': 'Séries Registradas',
 		'exerciseLog.minAbbr': 'min',
 		'exerciseLog.reps': 'reps',
+		'exerciseLog.weightPlaceholder': 'Peso (kg)',
+		'exerciseLog.timePlaceholder': 'Manter (seg)',
+		'exerciseLog.distancePlaceholder': 'Distância (km)',
+		'exerciseLog.kg': 'kg',
+		'exerciseLog.secAbbr': 'seg',
+		'exerciseLog.km': 'km',
 
 		// Exercises list
 		'exercises.title': 'Exercícios',
@@ -331,6 +361,15 @@ const translations: Record<Locale, TranslationDict> = {
 		'exerciseChart.noData': 'Nenhum dado disponível ainda',
 		'exerciseChart.unitMin': 'min',
 		'exerciseChart.unitReps': 'reps',
+		'exerciseChart.unitKg': 'kg',
+		'exerciseChart.unitSec': 'seg',
+		'exerciseChart.unitKm': 'km',
+
+		'metric.reps': 'Repetições',
+		'metric.weight': 'Peso',
+		'metric.time': 'Tempo estático',
+		'metric.duration': 'Duração',
+		'metric.distance': 'Distância',
 
 		// Speed assistant
 		'speedAssistant.back': '← Voltar',
@@ -342,6 +381,7 @@ const translations: Record<Locale, TranslationDict> = {
 		// Exercise types
 		'exerciseType.push': 'empurrar',
 		'exerciseType.pull': 'puxar',
+		'exerciseType.static': 'estático',
 		'exerciseType.cardio': 'cardio',
 
 		// Body regions

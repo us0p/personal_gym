@@ -65,9 +65,9 @@ export default function WorkoutsPage() {
 							</div>
 							{w.exercises.length > 0 && (
 								<div className="flex flex-wrap gap-2 mt-3">
-									{w.exercises.map((ex) => (
-										<span key={ex} className="text-xs bg-zinc-800 text-zinc-300 rounded-lg px-3 py-1.5 font-medium">
-											{ex}
+									{w.exercises.map((we) => (
+										<span key={we.name} className="text-xs bg-zinc-800 text-zinc-300 rounded-lg px-3 py-1.5 font-medium">
+											{we.name}
 										</span>
 									))}
 								</div>

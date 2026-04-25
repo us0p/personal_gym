@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Database from '../../core/infra/database';
-import { Exercise, ExerciseType, BODY_REGIONS } from '../../core/entities/exercise/exercise';
+import { Exercise, ExerciseType, BODY_REGIONS_BY_TYPE } from '../../core/entities/exercise/exercise';
 import { WorkoutRepository } from '../../core/entities/workout/workout-repository';
 import { ExecutionRepository } from '../../core/entities/execution/execution-repository';
 import { useLocale } from '../../context/locale-context';
@@ -45,10 +45,10 @@ export default function EditExercisePage() {
 				const workoutRepo = new WorkoutRepository(db);
 				const allWorkouts = await workoutRepo.getAll();
 				for (const w of allWorkouts) {
-					if (w.exercises.includes(exercise.name)) {
+					if (w.exercises.some((we) => we.name === exercise.name)) {
 						await workoutRepo.update({
 							...w,
-							exercises: w.exercises.map((e) => (e === exercise.name ? newName : e)),
+							exercises: w.exercises.map((we) => we.name === exercise.name ? { ...we, name: newName } : we),
 						});
 					}
 				}
@@ -105,7 +105,7 @@ export default function EditExercisePage() {
 					<div>
 						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-2 block">{t('newExercise.type')}</label>
 						<div className="flex gap-3">
-							{(['push', 'pull', 'cardio'] as const).map((ty) => (
+							{(['push', 'pull', 'static', 'cardio'] as const).map((ty) => (
 								<label key={ty} className="flex-1 cursor-pointer">
 									<input
 										type="radio"
@@ -126,8 +126,8 @@ export default function EditExercisePage() {
 					{type !== 'cardio' && (
 						<div>
 							<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3 block">{t('newExercise.bodyRegion')}</label>
-							<div className="grid grid-cols-2 gap-2">
-								{BODY_REGIONS.map((region) => (
+							<div key={type} className="grid grid-cols-2 gap-2">
+								{BODY_REGIONS_BY_TYPE[type].map((region) => (
 									<label key={region} className="flex items-center gap-3 bg-zinc-900 rounded-xl px-4 py-3 cursor-pointer active:bg-zinc-800">
 										<input
 											type="checkbox"

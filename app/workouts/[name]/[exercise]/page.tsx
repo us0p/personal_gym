@@ -4,12 +4,17 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import SpeedAssistant from '../../../components/speed-assistant';
 import Database from '../../../core/infra/database';
-import { Exercise, ExerciseType } from '../../../core/entities/exercise/exercise';
+import { Exercise } from '../../../core/entities/exercise/exercise';
+import type { ExerciseMetric } from '../../../core/entities/exercise/exercise';
+import { METRICS_BY_TYPE } from '../../../core/entities/exercise/exercise';
 import { Execution } from '../../../core/entities/execution/execution';
 import { ExecutionRepository } from '../../../core/entities/execution/execution-repository';
+import { WorkoutRepository } from '../../../core/entities/workout/workout-repository';
+import { UserStrikeRepository } from '../../../core/entities/user/user-strike-repository';
 import { useUser } from '../../../context/user-context';
 import { useTimer } from '../../../context/timer-context';
 import { useLocale } from '../../../context/locale-context';
+import { useToast } from '../../../context/toast-context';
 
 function formatTime(ts: string) {
 	return new Date(ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
@@ -27,18 +32,18 @@ export default function ExerciseLogPage() {
 	const { user } = useUser();
 	const { isActive: timerActive, timerRemaining, timerTotal, startTimer, cancelTimer, unlockAudio, setActiveExercise } = useTimer();
 	const { t } = useLocale();
+	const { toast } = useToast();
 
 	const workoutName = decodeURIComponent(params.name as string);
 	const exerciseName = decodeURIComponent(params.exercise as string);
 
-	const [exerciseType, setExerciseType] = useState<ExerciseType | null>(null);
+	const [metrics, setMetrics] = useState<ExerciseMetric[]>([]);
 	const [executions, setExecutions] = useState<Execution[]>([]);
 	const [restMinutes, setRestMinutes] = useState(1);
 	const [restSeconds, setRestSeconds] = useState(30);
 	const [showAssistant, setShowAssistant] = useState(false);
 	const formRef = useRef<HTMLFormElement>(null);
 
-	// Track this as the active exercise for global resume
 	useEffect(() => {
 		setActiveExercise({ workoutName, exerciseName });
 	}, [workoutName, exerciseName, setActiveExercise]);
@@ -52,11 +57,19 @@ export default function ExerciseLogPage() {
 	useEffect(() => {
 		async function load() {
 			const db = await Database.getInstance();
-			const [found, repo] = [
-				await db.get<Exercise>('exercise', exerciseName),
-				new ExecutionRepository(db),
-			];
-			if (found) setExerciseType(found.type);
+			const [exercise, workout, repo] = await Promise.all([
+				db.get<Exercise>('exercise', exerciseName),
+				new WorkoutRepository(db).get(workoutName),
+				Promise.resolve(new ExecutionRepository(db)),
+			]);
+
+			const workoutEx = workout?.exercises.find((we) => we.name === exerciseName);
+			if (workoutEx && workoutEx.metrics.length > 0) {
+				setMetrics(workoutEx.metrics);
+			} else if (exercise) {
+				setMetrics([METRICS_BY_TYPE[exercise.type][0]]);
+			}
+
 			setExecutions(await repo.getByWorkoutAndExercise(workoutName, exerciseName));
 		}
 		load();
@@ -68,13 +81,27 @@ export default function ExerciseLogPage() {
 		unlockAudio();
 
 		const form = new FormData(e.currentTarget);
-		const execution: Omit<Execution, 'id'> = exerciseType === 'cardio'
-			? { workoutName, exerciseName, durationMin: Number(form.get('durationMin')), timestamp: new Date().toISOString(), username: user.username }
-			: { workoutName, exerciseName, repNumber: Number(form.get('repNumber')), timestamp: new Date().toISOString(), username: user.username };
+		const execution: Omit<Execution, 'id'> = {
+			workoutName,
+			exerciseName,
+			timestamp: new Date().toISOString(),
+			username: user.username,
+			...(metrics.includes('reps') ? { repNumber: Number(form.get('repNumber')) } : {}),
+			...(metrics.includes('weight') ? { weightKg: Number(form.get('weightKg')) } : {}),
+			...(metrics.includes('duration') ? { durationMin: Number(form.get('durationMin')) } : {}),
+			...(metrics.includes('time') ? { durationSec: Number(form.get('durationSec')) } : {}),
+			...(metrics.includes('distance') ? { distanceKm: Number(form.get('distanceKm')) } : {}),
+		};
 
 		const db = await Database.getInstance();
 		const execRepo = new ExecutionRepository(db);
 		await execRepo.add(execution);
+
+		const strikeRepo = new UserStrikeRepository(db);
+		const { strike, increased } = await strikeRepo.recordLog(user.username);
+		if (increased) {
+			toast(t('home.strikeNotification', { count: strike.strikeCount, username: user.username }));
+		}
 
 		const totalRestSeconds = restMinutes * 60 + restSeconds;
 		if (totalRestSeconds > 0) {
@@ -92,9 +119,21 @@ export default function ExerciseLogPage() {
 		await loadExecutions();
 	}
 
+	function formatExecution(ex: Execution): string {
+		return [
+			ex.repNumber !== undefined ? `${ex.repNumber} ${t('exerciseLog.reps')}` : null,
+			ex.weightKg !== undefined ? `${ex.weightKg} ${t('exerciseLog.kg')}` : null,
+			ex.durationMin !== undefined ? `${ex.durationMin} ${t('exerciseLog.minAbbr')}` : null,
+			ex.durationSec !== undefined ? `${ex.durationSec} ${t('exerciseLog.secAbbr')}` : null,
+			ex.distanceKm !== undefined ? `${ex.distanceKm} ${t('exerciseLog.km')}` : null,
+		].filter(Boolean).join(' · ');
+	}
+
 	if (showAssistant) {
 		return <SpeedAssistant onClose={() => setShowAssistant(false)} />;
 	}
+
+	const inputClass = 'flex-1 min-w-[100px] bg-zinc-800 text-white rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-zinc-600 placeholder:text-zinc-500 text-base';
 
 	return (
 		<div className="min-h-screen bg-black text-white px-4 pt-14 pb-8">
@@ -121,7 +160,6 @@ export default function ExerciseLogPage() {
 						<p className="text-5xl font-bold tabular-nums text-center tracking-tight">
 							{formatCountdown(timerRemaining)}
 						</p>
-						{/* Progress bar */}
 						<div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
 							<div
 								className="h-full bg-white rounded-full transition-all duration-500"
@@ -166,31 +204,66 @@ export default function ExerciseLogPage() {
 					{/* Log form */}
 					<div>
 						<p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3">
-							{exerciseType === 'cardio' ? t('exerciseLog.logSession') : t('exerciseLog.logSet')}
+							{t('exerciseLog.logSet')}
 						</p>
-						<form ref={formRef} onSubmit={handleSubmit} className="flex gap-3">
-							{exerciseType === 'cardio' ? (
-								<input
-									required
-									name="durationMin"
-									type="number"
-									min={1}
-									placeholder={t('exerciseLog.durationPlaceholder')}
-									className="flex-1 bg-zinc-800 text-white rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-zinc-600 placeholder:text-zinc-500 text-base"
-								/>
-							) : (
-								<input
-									required
-									name="repNumber"
-									type="number"
-									min={1}
-									placeholder={t('exerciseLog.repsPlaceholder')}
-									className="flex-1 bg-zinc-800 text-white rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-zinc-600 placeholder:text-zinc-500 text-base"
-								/>
-							)}
+						<form ref={formRef} onSubmit={handleSubmit} className="space-y-3">
+							<div className="flex flex-wrap gap-3">
+								{metrics.includes('reps') && (
+									<input
+										required
+										name="repNumber"
+										type="number"
+										min={1}
+										placeholder={t('exerciseLog.repsPlaceholder')}
+										className={inputClass}
+									/>
+								)}
+								{metrics.includes('weight') && (
+									<input
+										required
+										name="weightKg"
+										type="number"
+										min={0}
+										step={0.5}
+										placeholder={t('exerciseLog.weightPlaceholder')}
+										className={inputClass}
+									/>
+								)}
+								{metrics.includes('duration') && (
+									<input
+										required
+										name="durationMin"
+										type="number"
+										min={1}
+										placeholder={t('exerciseLog.durationPlaceholder')}
+										className={inputClass}
+									/>
+								)}
+								{metrics.includes('time') && (
+									<input
+										required
+										name="durationSec"
+										type="number"
+										min={1}
+										placeholder={t('exerciseLog.timePlaceholder')}
+										className={inputClass}
+									/>
+								)}
+								{metrics.includes('distance') && (
+									<input
+										required
+										name="distanceKm"
+										type="number"
+										min={0.01}
+										step={0.01}
+										placeholder={t('exerciseLog.distancePlaceholder')}
+										className={inputClass}
+									/>
+								)}
+							</div>
 							<button
 								type="submit"
-								className="bg-white text-black rounded-xl px-6 py-3.5 font-bold text-base shrink-0"
+								className="w-full bg-white text-black rounded-xl px-6 py-3.5 font-bold text-base"
 							>
 								{t('exerciseLog.log')}
 							</button>
@@ -226,11 +299,7 @@ export default function ExerciseLogPage() {
 									{entries.map((ex) => (
 										<div key={ex.id} className="bg-zinc-900 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
 											<div className="min-w-0">
-												<p className="font-semibold">
-													{ex.durationMin !== undefined
-														? `${ex.durationMin} ${t('exerciseLog.minAbbr')}`
-														: `${ex.repNumber} ${t('exerciseLog.reps')}`}
-												</p>
+												<p className="font-semibold">{formatExecution(ex)}</p>
 												<p className="text-zinc-500 text-sm">{formatTime(ex.timestamp)}</p>
 											</div>
 											<button
