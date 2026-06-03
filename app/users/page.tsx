@@ -5,9 +5,35 @@ import Link from 'next/link';
 import Database from '../core/infra/database';
 import { useUser } from '../context/user-context';
 import { useLocale } from '../context/locale-context';
+import { useToast } from '../context/toast-context';
 import { calculateAge } from './utils';
 
 const DB_STORES = ['users', 'workout', 'exercise', 'execution', 'userWeightProgression'] as const;
+
+const UPSERT_STORES = ['users', 'execution', 'userWeightProgression'] as const;
+const APPEND_STORES = ['workout', 'exercise'] as const;
+
+async function importAllData(file: File): Promise<void> {
+	const text = await file.text();
+	const data = JSON.parse(text);
+	if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+		throw new Error('Invalid format');
+	}
+	const db = await Database.getInstance();
+	for (const store of UPSERT_STORES) {
+		const records = data[store];
+		if (!Array.isArray(records)) continue;
+		for (const record of records) await db.put(store, record);
+	}
+	for (const store of APPEND_STORES) {
+		const records = data[store];
+		if (!Array.isArray(records)) continue;
+		for (const record of records) {
+			const key = (record as Record<string, unknown>).name as string;
+			if (!await db.get(store, key)) await db.add(store, record);
+		}
+	}
+}
 
 async function exportAllData(): Promise<object> {
 	const db = await Database.getInstance();
@@ -82,15 +108,36 @@ function ExportModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function ProfilePage() {
-	const { user, currentWeight } = useUser();
+	const { user, currentWeight, refreshUser } = useUser();
 	const { t } = useLocale();
+	const { toast } = useToast();
 	const [showExport, setShowExport] = useState(false);
+	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+		const file = e.target.files?.[0];
+		if (!file) return;
+		e.target.value = '';
+		try {
+			await importAllData(file);
+			await refreshUser();
+			toast(t('profile.importSuccess'));
+		} catch {
+			toast(t('profile.importError'));
+		}
+	}
 
 	if (!user) {
 		return (
 			<div className="min-h-screen bg-black text-white px-4 pt-14">
 				<div className="max-w-lg mx-auto space-y-6">
-					<h1 className="text-2xl font-bold">{t('profile.title')}</h1>
+					<div className="flex items-center justify-between">
+						<h1 className="text-2xl font-bold">{t('profile.title')}</h1>
+						<div className="flex items-center gap-3">
+							<input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
+							<button onClick={() => fileInputRef.current?.click()} className="text-zinc-400 text-sm font-medium">{t('profile.import')}</button>
+						</div>
+					</div>
 					<p className="text-zinc-500 text-center py-12">{t('profile.noProfile')}</p>
 					<Link
 						href="/users/new"
@@ -109,7 +156,11 @@ export default function ProfilePage() {
 			<div className="max-w-lg mx-auto space-y-6">
 				<div className="flex items-center justify-between">
 					<h1 className="text-2xl font-bold">{t('profile.title')}</h1>
-					<button onClick={() => setShowExport(true)} className="text-zinc-400 text-sm font-medium">{t('profile.export')}</button>
+					<div className="flex items-center gap-3">
+						<input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
+						<button onClick={() => fileInputRef.current?.click()} className="text-zinc-400 text-sm font-medium">{t('profile.import')}</button>
+						<button onClick={() => setShowExport(true)} className="text-zinc-400 text-sm font-medium">{t('profile.export')}</button>
+					</div>
 				</div>
 
 				<div className="bg-zinc-900 rounded-2xl p-4 border border-zinc-700 space-y-3">
