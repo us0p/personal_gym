@@ -3,46 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Database from '../core/infra/database';
+import { DataPortService } from '../core/services/data-port-service';
 import { useUser } from '../context/user-context';
 import { useLocale } from '../context/locale-context';
 import { useToast } from '../context/toast-context';
 import { calculateAge } from './utils';
-
-const DB_STORES = ['users', 'workout', 'exercise', 'execution', 'userWeightProgression'] as const;
-
-const UPSERT_STORES = ['users', 'execution', 'userWeightProgression'] as const;
-const APPEND_STORES = ['workout', 'exercise'] as const;
-
-async function importAllData(file: File): Promise<void> {
-	const text = await file.text();
-	const data = JSON.parse(text);
-	if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-		throw new Error('Invalid format');
-	}
-	const db = await Database.getInstance();
-	for (const store of UPSERT_STORES) {
-		const records = data[store];
-		if (!Array.isArray(records)) continue;
-		for (const record of records) await db.put(store, record);
-	}
-	for (const store of APPEND_STORES) {
-		const records = data[store];
-		if (!Array.isArray(records)) continue;
-		for (const record of records) {
-			const key = (record as Record<string, unknown>).name as string;
-			if (!await db.get(store, key)) await db.add(store, record);
-		}
-	}
-}
-
-async function exportAllData(): Promise<object> {
-	const db = await Database.getInstance();
-	const result: Record<string, unknown[]> = {};
-	for (const store of DB_STORES) {
-		result[store] = await db.getAll(store);
-	}
-	return result;
-}
 
 function downloadJson(data: object, filename: string) {
 	const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -60,7 +25,7 @@ function ExportModal({ onClose }: { onClose: () => void }) {
 	const dialogRef = useRef<HTMLDialogElement>(null);
 
 	useEffect(() => {
-		exportAllData().then(setData);
+		Database.getInstance().then((db) => new DataPortService(db).exportAll()).then(setData);
 	}, []);
 
 	useEffect(() => {
@@ -119,7 +84,9 @@ export default function ProfilePage() {
 		if (!file) return;
 		e.target.value = '';
 		try {
-			await importAllData(file);
+			const text = await file.text();
+			const db = await Database.getInstance();
+			await new DataPortService(db).importAll(JSON.parse(text));
 			await refreshUser();
 			toast(t('profile.importSuccess'));
 		} catch {

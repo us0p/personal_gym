@@ -4,53 +4,29 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Database from '../../core/infra/database';
-import { Workout, WeekDay, WorkoutExercise } from '../../core/entities/workout/workout';
+import { Workout, WeekDay } from '../../core/entities/workout/workout';
 import { WorkoutRepository } from '../../core/entities/workout/workout-repository';
-import { Exercise, ExerciseMetric, METRICS_BY_TYPE } from '../../core/entities/exercise/exercise';
+import { Exercise, METRICS_BY_TYPE } from '../../core/entities/exercise/exercise';
 import { useUser } from '../../context/user-context';
 import { useLocale } from '../../context/locale-context';
 import { WEEK_DAYS } from '../../core/entities/workout/week-day-labels';
 import { inputClass } from '../../lib/styles';
+import { useWorkoutExerciseSelector } from '../use-workout-exercise-selector';
 
 export default function NewWorkoutPage() {
 	const router = useRouter();
 	const { user } = useUser();
 	const { t } = useLocale();
 	const [exercises, setExercises] = useState<Exercise[]>([]);
-	const [exerciseMetrics, setExerciseMetrics] = useState<Map<string, ExerciseMetric[]>>(new Map());
+	const { exerciseMetrics, toggleExercise, toggleMetric, getWorkoutExercises } = useWorkoutExerciseSelector();
 
 	useEffect(() => {
 		async function load() {
 			const db = await Database.getInstance();
 			setExercises(await db.getAll<Exercise>('exercise'));
 		}
-		load();
+		void load();
 	}, []);
-
-	function toggleExercise(ex: Exercise, checked: boolean) {
-		setExerciseMetrics((prev) => {
-			const next = new Map(prev);
-			if (checked) {
-				next.set(ex.name, [METRICS_BY_TYPE[ex.type][0]]);
-			} else {
-				next.delete(ex.name);
-			}
-			return next;
-		});
-	}
-
-	function toggleMetric(exerciseName: string, metric: ExerciseMetric, currentMetrics: ExerciseMetric[]) {
-		setExerciseMetrics((prev) => {
-			const next = new Map(prev);
-			if (currentMetrics.includes(metric)) {
-				if (currentMetrics.length === 1) return prev;
-				next.set(exerciseName, currentMetrics.filter((m) => m !== metric));
-			} else {
-				next.set(exerciseName, [...currentMetrics, metric]);
-			}
-			return next;
-		});
-	}
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
@@ -61,9 +37,7 @@ export default function NewWorkoutPage() {
 		}
 		const form = new FormData(e.currentTarget);
 		const weekDays = form.getAll('weekDays') as WeekDay[];
-		const workoutExercises: WorkoutExercise[] = Array.from(exerciseMetrics.entries()).map(
-			([name, metrics]) => ({ name, metrics }),
-		);
+		const workoutExercises = getWorkoutExercises();
 		const workout: Workout = {
 			name: form.get('name') as string,
 			exercises: workoutExercises,

@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Database from '../../core/infra/database';
 import { Exercise, ExerciseType, BODY_REGIONS_BY_TYPE } from '../../core/entities/exercise/exercise';
-import { WorkoutRepository } from '../../core/entities/workout/workout-repository';
-import { ExecutionRepository } from '../../core/entities/execution/execution-repository';
+import { ExerciseService } from '../../core/services/exercise-service';
 import { useLocale } from '../../context/locale-context';
 import { inputClass } from '../../lib/styles';
 
@@ -38,31 +37,7 @@ export default function EditExercisePage() {
 		const updated: Exercise = { name: newName, type, bodyRegion };
 		const db = await Database.getInstance();
 		try {
-			if (newName !== exercise.name) {
-				await db.delete('exercise', exercise.name);
-				await db.add('exercise', updated);
-
-				const workoutRepo = new WorkoutRepository(db);
-				const allWorkouts = await workoutRepo.getAll();
-				for (const w of allWorkouts) {
-					if (w.exercises.some((we) => we.name === exercise.name)) {
-						await workoutRepo.update({
-							...w,
-							exercises: w.exercises.map((we) => we.name === exercise.name ? { ...we, name: newName } : we),
-						});
-					}
-				}
-
-				const execRepo = new ExecutionRepository(db);
-				const allExecutions = await execRepo.getAll();
-				for (const exec of allExecutions) {
-					if (exec.exerciseName === exercise.name) {
-						await db.put('execution', { ...exec, exerciseName: newName });
-					}
-				}
-			} else {
-				await db.put('exercise', updated);
-			}
+			await new ExerciseService(db).rename(exercise.name, updated);
 			router.push('/exercises');
 		} catch {
 			alert(t('editExercise.alreadyExists'));
@@ -72,7 +47,7 @@ export default function EditExercisePage() {
 	async function handleDelete() {
 		if (!confirm(t('editExercise.deleteConfirm', { name }))) return;
 		const db = await Database.getInstance();
-		await db.delete('exercise', name);
+		await new ExerciseService(db).delete(name);
 		router.push('/exercises');
 	}
 

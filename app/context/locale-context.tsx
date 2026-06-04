@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { LOCALES, Locale, translations, detectLocale, interpolate } from '../i18n/translations';
 import { useUser } from './user-context';
 import Database from '../core/infra/database';
@@ -20,18 +20,14 @@ const LocaleContext = createContext<LocaleContextType>({
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
 	const { user, refreshUser } = useUser();
-	const [locale, setLocaleState] = useState<Locale>(detectLocale);
+	const [manualLocale, setManualLocale] = useState<Locale | null>(null);
 
-	// When user loads or changes, apply their stored locale preference
-	useEffect(() => {
-		const stored = user?.locale;
-		if (stored && LOCALES.includes(stored as Locale)) {
-			setLocaleState(stored as Locale);
-		}
-	}, [user?.locale]);
+	// Derive the active locale: explicit user choice > stored user preference > browser default
+	const userLocale = user?.locale && LOCALES.includes(user.locale as Locale) ? user.locale as Locale : null;
+	const locale: Locale = manualLocale ?? userLocale ?? detectLocale();
 
 	const setLocale = useCallback(async (newLocale: Locale) => {
-		setLocaleState(newLocale);
+		setManualLocale(newLocale);
 		if (!user) return;
 		try {
 			const db = await Database.getInstance();

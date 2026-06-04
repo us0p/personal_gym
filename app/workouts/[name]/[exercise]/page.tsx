@@ -10,7 +10,7 @@ import { METRICS_BY_TYPE } from '../../../core/entities/exercise/exercise';
 import { Execution } from '../../../core/entities/execution/execution';
 import { ExecutionRepository } from '../../../core/entities/execution/execution-repository';
 import { WorkoutRepository } from '../../../core/entities/workout/workout-repository';
-import { UserStrikeRepository } from '../../../core/entities/user/user-strike-repository';
+import { ExecutionLogService } from '../../../core/services/execution-log-service';
 import { useUser } from '../../../context/user-context';
 import { useTimer } from '../../../context/timer-context';
 import { useLocale } from '../../../context/locale-context';
@@ -81,26 +81,23 @@ export default function ExerciseLogPage() {
 		unlockAudio();
 
 		const form = new FormData(e.currentTarget);
-		const execution: Omit<Execution, 'id'> = {
+		const db = await Database.getInstance();
+		const { strikeIncreased, strikeCount } = await new ExecutionLogService(db).log(
+			user.username,
 			workoutName,
 			exerciseName,
-			timestamp: new Date().toISOString(),
-			username: user.username,
-			...(metrics.includes('reps') ? { repNumber: Number(form.get('repNumber')) } : {}),
-			...(metrics.includes('weight') ? { weightKg: Number(form.get('weightKg')) } : {}),
-			...(metrics.includes('duration') ? { durationMin: Number(form.get('durationMin')) } : {}),
-			...(metrics.includes('time') ? { durationSec: Number(form.get('durationSec')) } : {}),
-			...(metrics.includes('distance') ? { distanceKm: Number(form.get('distanceKm')) } : {}),
-		};
+			metrics,
+			{
+				repNumber: metrics.includes('reps') ? Number(form.get('repNumber')) : undefined,
+				weightKg: metrics.includes('weight') ? Number(form.get('weightKg')) : undefined,
+				durationMin: metrics.includes('duration') ? Number(form.get('durationMin')) : undefined,
+				durationSec: metrics.includes('time') ? Number(form.get('durationSec')) : undefined,
+				distanceKm: metrics.includes('distance') ? Number(form.get('distanceKm')) : undefined,
+			},
+		);
 
-		const db = await Database.getInstance();
-		const execRepo = new ExecutionRepository(db);
-		await execRepo.add(execution);
-
-		const strikeRepo = new UserStrikeRepository(db);
-		const { strike, increased } = await strikeRepo.recordLog(user.username);
-		if (increased) {
-			toast(t('home.strikeNotification', { count: strike.strikeCount, username: user.username }));
+		if (strikeIncreased) {
+			toast(t('home.strikeNotification', { count: strikeCount, username: user.username }));
 		}
 
 		const totalRestSeconds = restMinutes * 60 + restSeconds;

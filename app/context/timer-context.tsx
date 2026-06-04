@@ -1,11 +1,8 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
-
-interface ActiveExercise {
-	workoutName: string;
-	exerciseName: string;
-}
+import { TimerService } from '../core/services/timer-service';
+import type { ActiveExercise } from '../core/services/timer-service';
 
 interface TimerContextType {
 	isActive: boolean;
@@ -29,42 +26,14 @@ const TimerContext = createContext<TimerContextType>({
 	unlockAudio: () => {},
 });
 
-function readActiveExercise(): ActiveExercise | null {
-	if (typeof window === 'undefined') return null;
-	try {
-		const raw = sessionStorage.getItem('activeExercise');
-		if (!raw) return null;
-		const parsed = JSON.parse(raw);
-		if (typeof parsed?.workoutName === 'string' && typeof parsed?.exerciseName === 'string') {
-			return { workoutName: parsed.workoutName, exerciseName: parsed.exerciseName };
-		}
-		return null;
-	} catch {
-		return null;
-	}
-}
-
-function saveActiveExercise(exercise: ActiveExercise | null) {
-	try {
-		if (exercise) {
-			sessionStorage.setItem('activeExercise', JSON.stringify(exercise));
-		} else {
-			sessionStorage.removeItem('activeExercise');
-		}
-	} catch {}
-}
-
 export function TimerProvider({ children }: { children: ReactNode }) {
+	const [timerService] = useState<TimerService>(() => new TimerService());
 	const [endTime, setEndTime] = useState<number | null>(null);
 	const [timerTotal, setTimerTotal] = useState(0);
 	const [timerRemaining, setTimerRemaining] = useState(0);
-	const [activeExercise, setActiveExerciseState] = useState<ActiveExercise | null>(null);
-
-	// Hydrate from sessionStorage after mount to avoid SSR mismatch
-	useEffect(() => {
-		const stored = readActiveExercise();
-		if (stored) setActiveExerciseState(stored);
-	}, []);
+	const [activeExercise, setActiveExerciseState] = useState<ActiveExercise | null>(
+		() => new TimerService().readActiveExercise(),
+	);
 	const audioCtxRef = useRef<AudioContext | null>(null);
 
 	const isActive = endTime !== null;
@@ -98,7 +67,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
 		}
 
 		function tick() {
-			const remaining = Math.max(0, Math.ceil((endTime! - Date.now()) / 1000));
+			const remaining = timerService.getRemainingSeconds(Date.now());
 			setTimerRemaining(remaining);
 			if (remaining <= 0) {
 				setEndTime(null);
@@ -115,7 +84,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
 			clearInterval(interval);
 			document.removeEventListener('visibilitychange', onVisibility);
 		};
-	}, [endTime]);
+	}, [endTime, timerService]);
 
 	const unlockAudio = useCallback(() => {
 		try {
@@ -129,22 +98,24 @@ export function TimerProvider({ children }: { children: ReactNode }) {
 
 	const startTimer = useCallback((workoutName: string, exerciseName: string, totalSeconds: number) => {
 		const ex = { workoutName, exerciseName };
-		setEndTime(Date.now() + totalSeconds * 1000);
+		const newEndTime = Date.now() + totalSeconds * 1000;
+		timerService.start(workoutName, exerciseName, totalSeconds);
+		setEndTime(newEndTime);
 		setTimerTotal(totalSeconds);
 		setTimerRemaining(totalSeconds);
 		setActiveExerciseState(ex);
-		saveActiveExercise(ex);
-	}, []);
+	}, [timerService]);
 
 	const cancelTimer = useCallback(() => {
+		timerService.cancel();
 		setEndTime(null);
 		setTimerRemaining(0);
-	}, []);
+	}, [timerService]);
 
 	const setActiveExercise = useCallback((exercise: ActiveExercise | null) => {
 		setActiveExerciseState(exercise);
-		saveActiveExercise(exercise);
-	}, []);
+		timerService.saveActiveExercise(exercise);
+	}, [timerService]);
 
 	return (
 		<TimerContext.Provider value={{ isActive, timerRemaining, timerTotal, activeExercise, startTimer, cancelTimer, setActiveExercise, unlockAudio }}>

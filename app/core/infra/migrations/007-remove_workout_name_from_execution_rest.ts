@@ -9,7 +9,8 @@ const migration: Migration = {
 		req.onsuccess = () => {
 			for (const record of req.result as Array<Record<string, unknown>>) {
 				if ('workoutName' in record) {
-					const { workoutName: _removed, ...rest } = record;
+					// eslint-disable-next-line @typescript-eslint/no-unused-vars
+				const { workoutName: _removed, ...rest } = record;
 					store.put(rest);
 				}
 			}

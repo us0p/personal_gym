@@ -3,47 +3,13 @@
 import { useEffect, useState } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts';
 import Database from '../core/infra/database';
-import { WorkoutRepository } from '../core/entities/workout/workout-repository';
-import { ExecutionRepository } from '../core/entities/execution/execution-repository';
-import type { Execution } from '../core/entities/execution/execution';
+import { ExerciseProgressionService } from '../core/services/exercise-progression-service';
+import type { ChartPoint } from '../core/services/exercise-progression-service';
 import type { ExerciseMetric } from '../core/entities/exercise/exercise';
 import { useLocale } from '../context/locale-context';
 
 interface Props {
 	username: string;
-}
-
-interface ChartPoint {
-	date: string;
-	value: number;
-}
-
-function toLocalDateKey(isoTimestamp: string): string {
-	const d = new Date(isoTimestamp);
-	const y = d.getFullYear();
-	const m = String(d.getMonth() + 1).padStart(2, '0');
-	const day = String(d.getDate()).padStart(2, '0');
-	return `${y}-${m}-${day}`;
-}
-
-function formatDateKey(key: string): string {
-	const [y, m, d] = key.split('-').map(Number);
-	return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
-function getMetricValue(ex: Execution, metric: ExerciseMetric): number | undefined {
-	switch (metric) {
-		case 'reps': return ex.repNumber;
-		case 'weight': return ex.weightKg;
-		case 'duration': return ex.durationMin;
-		case 'time': return ex.durationSec;
-		case 'distance': return ex.distanceKm;
-	}
-}
-
-function detectMetrics(executions: Execution[]): ExerciseMetric[] {
-	const all: ExerciseMetric[] = ['reps', 'weight', 'duration', 'time', 'distance'];
-	return all.filter((m) => executions.some((e) => getMetricValue(e, m) !== undefined));
 }
 
 export default function ExerciseProgressionChart({ username }: Props) {
@@ -59,72 +25,40 @@ export default function ExerciseProgressionChart({ username }: Props) {
 		async function loadOptions() {
 			try {
 				const db = await Database.getInstance();
-				const workouts = await new WorkoutRepository(db).getAll();
-
-				const seen = new Set<string>();
-				const names: string[] = [];
-				for (const w of workouts) {
-					for (const we of w.exercises) {
-						if (!seen.has(we.name)) {
-							seen.add(we.name);
-							names.push(we.name);
-						}
-					}
-				}
-
+				const names = await new ExerciseProgressionService(db).getExerciseNames();
 				setOptions(names);
 				setSelected(names[0] ?? '');
 			} finally {
 				setReady(true);
 			}
 		}
-		loadOptions();
+		 
+		void loadOptions();
 	}, [username]);
 
 	useEffect(() => {
 		if (!selected) return;
 		async function loadChartData() {
 			const db = await Database.getInstance();
-			const all = await new ExecutionRepository(db).getAll();
-			const filtered = all.filter((e) => e.exerciseName === selected);
-
-			const metrics = detectMetrics(filtered);
+			const svc = new ExerciseProgressionService(db);
+			const metrics = await svc.getAvailableMetrics(selected);
 			setAvailableMetrics(metrics);
-
 			const metric = metrics[0] ?? null;
 			setSelectedMetric((prev) => (prev && metrics.includes(prev) ? prev : metric));
-
 			if (!metric) {
 				setChartData([]);
 				return;
 			}
-
-			buildChart(filtered, metric);
+			setChartData(await svc.buildChartData(selected, metric));
 		}
-		loadChartData();
-	// eslint-disable-next-line react-hooks/exhaustive-deps
+		 
+		void loadChartData();
 	}, [selected]);
-
-	function buildChart(executions: Execution[], metric: ExerciseMetric) {
-		const byDate = new Map<string, number>();
-		for (const e of executions) {
-			const val = getMetricValue(e, metric);
-			if (val === undefined) continue;
-			const key = toLocalDateKey(e.timestamp);
-			byDate.set(key, Math.max(byDate.get(key) ?? 0, val));
-		}
-		const data = Array.from(byDate.entries())
-			.sort(([a], [b]) => a.localeCompare(b))
-			.map(([key, value]) => ({ date: formatDateKey(key), value }));
-		setChartData(data);
-	}
 
 	async function handleMetricChange(metric: ExerciseMetric) {
 		setSelectedMetric(metric);
 		const db = await Database.getInstance();
-		const all = await new ExecutionRepository(db).getAll();
-		const filtered = all.filter((e) => e.exerciseName === selected);
-		buildChart(filtered, metric);
+		setChartData(await new ExerciseProgressionService(db).buildChartData(selected, metric));
 	}
 
 	if (!ready) return null;

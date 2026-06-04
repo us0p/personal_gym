@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Database from '../../../core/infra/database';
-import { Workout, WeekDay, WorkoutExercise } from '../../../core/entities/workout/workout';
+import { Workout, WeekDay } from '../../../core/entities/workout/workout';
 import { WorkoutRepository } from '../../../core/entities/workout/workout-repository';
-import { ExecutionRepository } from '../../../core/entities/execution/execution-repository';
-import { Exercise, ExerciseMetric, METRICS_BY_TYPE } from '../../../core/entities/exercise/exercise';
+import { WorkoutService } from '../../../core/services/workout-service';
+import { Exercise, METRICS_BY_TYPE } from '../../../core/entities/exercise/exercise';
 import { useLocale } from '../../../context/locale-context';
 import { WEEK_DAYS } from '../../../core/entities/workout/week-day-labels';
 import { inputClass } from '../../../lib/styles';
+import { useWorkoutExerciseSelector } from '../../use-workout-exercise-selector';
 
 export default function EditWorkoutPage() {
 	const params = useParams();
@@ -18,7 +19,7 @@ export default function EditWorkoutPage() {
 	const name = decodeURIComponent(params.name as string);
 	const [workout, setWorkout] = useState<Workout | null>(null);
 	const [exercises, setExercises] = useState<Exercise[]>([]);
-	const [exerciseMetrics, setExerciseMetrics] = useState<Map<string, ExerciseMetric[]>>(new Map());
+	const { exerciseMetrics, toggleExercise, toggleMetric, setExercises: setSelectorExercises, getWorkoutExercises } = useWorkoutExerciseSelector();
 
 	useEffect(() => {
 		async function load() {
@@ -30,38 +31,12 @@ export default function EditWorkoutPage() {
 			]);
 			setWorkout(found ?? null);
 			setExercises(allExercises);
-			if (found) {
-				setExerciseMetrics(new Map(found.exercises.map((we) => [we.name, we.metrics])));
-			}
+			if (found) setSelectorExercises(found.exercises);
 		}
-		load();
+		void load();
+	// setSelectorExercises is stable (from useState setter), safe to omit
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [name]);
-
-	function toggleExercise(ex: Exercise, checked: boolean) {
-		setExerciseMetrics((prev) => {
-			const next = new Map(prev);
-			if (checked) {
-				const available = METRICS_BY_TYPE[ex.type];
-				next.set(ex.name, [available[0]]);
-			} else {
-				next.delete(ex.name);
-			}
-			return next;
-		});
-	}
-
-	function toggleMetric(exerciseName: string, metric: ExerciseMetric, currentMetrics: ExerciseMetric[]) {
-		setExerciseMetrics((prev) => {
-			const next = new Map(prev);
-			if (currentMetrics.includes(metric)) {
-				if (currentMetrics.length === 1) return prev;
-				next.set(exerciseName, currentMetrics.filter((m) => m !== metric));
-			} else {
-				next.set(exerciseName, [...currentMetrics, metric]);
-			}
-			return next;
-		});
-	}
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
@@ -69,9 +44,7 @@ export default function EditWorkoutPage() {
 		const form = new FormData(e.currentTarget);
 		const newName = (form.get('name') as string).trim();
 		const weekDays = form.getAll('weekDays') as WeekDay[];
-		const workoutExercises: WorkoutExercise[] = Array.from(exerciseMetrics.entries()).map(
-			([exName, metrics]) => ({ name: exName, metrics }),
-		);
+		const workoutExercises = getWorkoutExercises();
 		const updated: Workout = {
 			name: newName,
 			exercises: workoutExercises,
@@ -79,22 +52,8 @@ export default function EditWorkoutPage() {
 			weekDays: weekDays.length > 0 ? weekDays : undefined,
 		};
 		const db = await Database.getInstance();
-		const repo = new WorkoutRepository(db);
 		try {
-			if (newName !== workout.name) {
-				await repo.delete(workout.name);
-				await repo.add(updated);
-
-				const execRepo = new ExecutionRepository(db);
-				const allExecutions = await execRepo.getAll();
-				for (const exec of allExecutions) {
-					if (exec.workoutName === workout.name) {
-						await db.put('execution', { ...exec, workoutName: newName });
-					}
-				}
-			} else {
-				await repo.update(updated);
-			}
+			await new WorkoutService(db).update(workout.name, updated);
 			router.push(`/workouts/${encodeURIComponent(newName)}`);
 		} catch {
 			alert(t('editWorkout.alreadyExists'));
@@ -104,8 +63,7 @@ export default function EditWorkoutPage() {
 	async function handleDelete() {
 		if (!confirm(t('editWorkout.deleteConfirm', { name }))) return;
 		const db = await Database.getInstance();
-		const repo = new WorkoutRepository(db);
-		await repo.delete(name);
+		await new WorkoutService(db).delete(name);
 		router.push('/workouts');
 	}
 

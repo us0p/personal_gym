@@ -35,7 +35,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
 	}
 
 	useEffect(() => {
-		refreshUser();
+		// eslint-disable-next-line react-hooks/set-state-in-effect
+		void refreshUser();
 	}, []);
 
 	return (

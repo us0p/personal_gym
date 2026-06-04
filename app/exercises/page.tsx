@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Database from '../core/infra/database';
 import { Exercise } from '../core/entities/exercise/exercise';
+import { ExerciseRepository } from '../core/entities/exercise/exercise-repository';
+import { ExerciseService } from '../core/services/exercise-service';
 import { useLocale } from '../context/locale-context';
 
 export default function ExercisesPage() {
@@ -12,16 +14,19 @@ export default function ExercisesPage() {
 
 	async function load() {
 		const db = await Database.getInstance();
-		setExercises(await db.getAll<Exercise>('exercise'));
+		setExercises(await new ExerciseRepository(db).getAll());
 	}
 
-	useEffect(() => { load(); }, []);
+	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
+		void load();
+	}, []);
 
 	async function handleDelete(name: string) {
 		if (!confirm(t('exercises.deleteConfirm', { name }))) return;
 		const db = await Database.getInstance();
-		await db.delete('exercise', name);
-		load();
+		await new ExerciseService(db).delete(name);
+		void load();
 	}
 
 	return (

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useLocale } from '../context/locale-context';
 
 function HomeIcon({ active }: { active: boolean }) {
@@ -42,10 +42,25 @@ function PersonIcon({ active }: { active: boolean }) {
 	);
 }
 
+function readLastWorkoutsPath(): string {
+	if (typeof window === 'undefined') return '/workouts';
+	try { return sessionStorage.getItem('lastWorkoutsPath') ?? '/workouts'; } catch { return '/workouts'; }
+}
+
 export default function Nav() {
 	const { t } = useLocale();
 	const pathname = usePathname();
-	const [lastWorkoutsPath, setLastWorkoutsPath] = useState('/workouts');
+
+	// Persist the deepest workouts path to sessionStorage so we can restore it
+	// when the user navigates away and comes back.
+	useEffect(() => {
+		if (pathname.startsWith('/workouts')) {
+			try { sessionStorage.setItem('lastWorkoutsPath', pathname); } catch {}
+		}
+	}, [pathname]);
+
+	// Derive the workouts tab href: current path when inside workouts, last saved path otherwise.
+	const lastWorkoutsPath = pathname.startsWith('/workouts') ? pathname : readLastWorkoutsPath();
 
 	const tabs = [
 		{ href: '/', labelKey: 'nav.home', Icon: HomeIcon, exact: true },
@@ -53,23 +68,6 @@ export default function Nav() {
 		{ href: '/exercises', labelKey: 'nav.exercises', Icon: BoltIcon, exact: false },
 		{ href: '/users', labelKey: 'nav.profile', Icon: PersonIcon, exact: false },
 	];
-
-	// Hydrate from sessionStorage after mount to avoid SSR mismatch
-	useEffect(() => {
-		try {
-			const stored = sessionStorage.getItem('lastWorkoutsPath');
-			if (stored) setLastWorkoutsPath(stored);
-		} catch {}
-	}, []);
-
-	// Keep lastWorkoutsPath in sync with the current pathname whenever
-	// the user is anywhere inside the workouts section
-	useEffect(() => {
-		if (pathname.startsWith('/workouts')) {
-			setLastWorkoutsPath(pathname);
-			try { sessionStorage.setItem('lastWorkoutsPath', pathname); } catch {}
-		}
-	}, [pathname]);
 
 	return (
 		<nav className="fixed bottom-0 left-0 right-0 bg-zinc-950 border-t border-zinc-800" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
