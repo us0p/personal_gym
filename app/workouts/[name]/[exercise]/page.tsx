@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import SpeedAssistant from '../../../components/speed-assistant';
 import CountdownTimer from '../../../components/countdown-timer';
+import ExerciseNotes from '../../../components/exercise-notes';
 import Database from '../../../core/infra/database';
 import { Exercise } from '../../../core/entities/exercise/exercise';
 import type { ExerciseMetric } from '../../../core/entities/exercise/exercise';
@@ -11,6 +12,8 @@ import { METRICS_BY_TYPE } from '../../../core/entities/exercise/exercise';
 import { Execution } from '../../../core/entities/execution/execution';
 import { ExecutionRepository } from '../../../core/entities/execution/execution-repository';
 import { WorkoutRepository } from '../../../core/entities/workout/workout-repository';
+import { ExerciseNoteRepository } from '../../../core/entities/exercise-note/exercise-note-repository';
+import type { ExerciseNote } from '../../../core/entities/exercise-note/exercise-note';
 import { ExecutionLogService } from '../../../core/services/execution-log-service';
 import { useUser } from '../../../context/user-context';
 import { useTimer } from '../../../context/timer-context';
@@ -44,6 +47,8 @@ export default function ExerciseLogPage() {
 	const [restSeconds, setRestSeconds] = useState(30);
 	const [showAssistant, setShowAssistant] = useState(false);
 	const [showTimer, setShowTimer] = useState(false);
+	const [showNotes, setShowNotes] = useState(false);
+	const [latestNote, setLatestNote] = useState<ExerciseNote | null>(null);
 	const formRef = useRef<HTMLFormElement>(null);
 
 	useEffect(() => {
@@ -54,6 +59,12 @@ export default function ExerciseLogPage() {
 		const db = await Database.getInstance();
 		const repo = new ExecutionRepository(db);
 		setExecutions(await repo.getByWorkoutAndExercise(workoutName, exerciseName));
+	}
+
+	async function loadLatestNote() {
+		const db = await Database.getInstance();
+		const notes = await new ExerciseNoteRepository(db).getByWorkoutAndExercise(workoutName, exerciseName);
+		setLatestNote(notes[0] ?? null);
 	}
 
 	useEffect(() => {
@@ -73,6 +84,10 @@ export default function ExerciseLogPage() {
 			}
 
 			setExecutions(await repo.getByWorkoutAndExercise(workoutName, exerciseName));
+
+			const noteRepo = new ExerciseNoteRepository(db);
+			const notes = await noteRepo.getByWorkoutAndExercise(workoutName, exerciseName);
+			setLatestNote(notes[0] ?? null);
 		}
 		load();
 	}, [workoutName, exerciseName]);
@@ -136,6 +151,10 @@ export default function ExerciseLogPage() {
 		return <CountdownTimer workoutName={workoutName} exerciseName={exerciseName} onClose={() => setShowTimer(false)} />;
 	}
 
+	if (showNotes) {
+		return <ExerciseNotes workoutName={workoutName} exerciseName={exerciseName} onClose={() => { setShowNotes(false); void loadLatestNote(); }} />;
+	}
+
 	const inputClass = 'flex-1 min-w-[100px] bg-zinc-800 text-white rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-zinc-600 placeholder:text-zinc-500 text-base';
 
 	return (
@@ -150,6 +169,15 @@ export default function ExerciseLogPage() {
 						<p className="text-zinc-500 text-sm mt-0.5">{workoutName}</p>
 					</div>
 				</div>
+
+				{/* Latest note */}
+				{latestNote && (
+					<div className="bg-zinc-900 rounded-2xl px-4 py-3 space-y-1">
+						<p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold">{t('exerciseNotes.latestNote')}</p>
+						<p className="text-sm text-white whitespace-pre-wrap">{latestNote.content}</p>
+						<p className="text-xs text-zinc-500">{formatTime(latestNote.timestamp)}</p>
+					</div>
+				)}
 
 				{/* Active rest timer */}
 				{timerActive && (
@@ -289,6 +317,14 @@ export default function ExerciseLogPage() {
 					className="w-full bg-zinc-900 text-white font-semibold rounded-2xl py-4 text-base border border-zinc-700"
 				>
 					{t('countdownTimer.openButton')}
+				</button>
+
+				{/* Notes */}
+				<button
+					onClick={() => setShowNotes(true)}
+					className="w-full bg-zinc-900 text-white font-semibold rounded-2xl py-4 text-base border border-zinc-700"
+				>
+					{t('exerciseNotes.openButton')}
 				</button>
 
 				{/* Logged sets grouped by date */}

@@ -4,7 +4,7 @@
 > Update it every time you add a migration, rename a field, or change a relationship.
 > The source of truth for the schema version is `app/core/infra/config.ts` (`DATABASE_VERSION`).
 
-Current schema version: **10**
+Current schema version: **11**
 
 ---
 
@@ -64,6 +64,14 @@ erDiagram
         string  updatedAt     "ISO datetime string"
     }
 
+    ExerciseNote {
+        number  id            PK "auto-increment"
+        string  workoutName   "references Workout.name (not enforced)"
+        string  exerciseName  "references Exercise.name (not enforced)"
+        string  content       "plain text"
+        string  timestamp     "ISO datetime string; updated on edit"
+    }
+
     User          ||--o{  Workout         : "owns (username)"
     User          ||--o{  Execution       : "logs (username)"
     User          ||--o{  UserWeightEntry : "tracks (username)"
@@ -72,6 +80,8 @@ erDiagram
     WorkoutExercise }o--o| Exercise       : "references name"
     Execution     }o--o|  Workout         : "references workoutName"
     Execution     }o--o|  Exercise        : "references exerciseName"
+    ExerciseNote  }o--o|  Workout         : "references workoutName"
+    ExerciseNote  }o--o|  Exercise        : "references exerciseName"
 ```
 
 ---
@@ -86,6 +96,7 @@ erDiagram
 | `execution` | `id` | **yes** | Append-only log |
 | `userWeightProgression` | `id` | **yes** | Append-only log |
 | `userStrike` | `username` | no | One record per user |
+| `exerciseNote` | `id` | **yes** | Append-only per workout+exercise |
 
 ---
 
@@ -95,7 +106,10 @@ IndexedDB enforces no foreign keys. Consistency is maintained by the service lay
 
 - **Renaming an exercise** → `ExerciseService.rename()` cascades to `workout.exercises[].name` and `execution.exerciseName`.
 - **Renaming a workout** → `WorkoutService.update()` cascades to `execution.workoutName`.
-- **Deleting an exercise or workout** → references in other stores become dangling (no cascade delete by design).
+- **Renaming an exercise** → `ExerciseService.rename()` also cascades to `exerciseNote.exerciseName`.
+- **Renaming a workout** → `WorkoutService.update()` also cascades to `exerciseNote.workoutName`.
+- **Deleting an exercise** → `ExerciseService.delete()` cascades to `exerciseNote` (deletes all notes for that exercise).
+- **Deleting a workout** → `WorkoutService.delete()` cascades to `exerciseNote` (deletes all notes for that workout).
 
 ---
 
@@ -135,3 +149,4 @@ Allowed metrics per exercise type (see `METRICS_BY_TYPE` in `app/core/entities/e
 | 8 | `008-remove_execution_rest_and_speed_stores.ts` | Drop `executionRest` and `executionSpeed` stores |
 | 9 | `009-add_user_strike.ts` | Add `userStrike` |
 | 10 | `010-migrate_workout_exercises.ts` | Migrate `workout.exercises` from `string[]` to `WorkoutExercise[]` |
+| 11 | `011-add_exercise_note.ts` | Add `exerciseNote` store |

@@ -2,14 +2,17 @@ import Database from '../infra/database';
 import type { Exercise } from '../entities/exercise/exercise';
 import { WorkoutRepository } from '../entities/workout/workout-repository';
 import { ExecutionRepository } from '../entities/execution/execution-repository';
+import { ExerciseNoteRepository } from '../entities/exercise-note/exercise-note-repository';
 
 export class ExerciseService {
 	private readonly workoutRepo: WorkoutRepository;
 	private readonly executionRepo: ExecutionRepository;
+	private readonly noteRepo: ExerciseNoteRepository;
 
 	constructor(private readonly db: Database) {
 		this.workoutRepo = new WorkoutRepository(db);
 		this.executionRepo = new ExecutionRepository(db);
+		this.noteRepo = new ExerciseNoteRepository(db);
 	}
 
 	/**
@@ -42,10 +45,13 @@ export class ExerciseService {
 				await this.db.put('execution', { ...exec, exerciseName: newName });
 			}
 		}
+
+		await this.noteRepo.updateExerciseName(oldName, newName);
 	}
 
-	/** Removes an exercise by name. Does not cascade to workouts or executions. */
+	/** Removes an exercise and cascades the delete to its notes. */
 	async delete(name: string): Promise<void> {
 		await this.db.delete('exercise', name);
+		await this.noteRepo.deleteByExercise(name);
 	}
 }

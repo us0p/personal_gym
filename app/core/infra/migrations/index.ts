@@ -9,6 +9,7 @@ import migration007 from './007-remove_workout_name_from_execution_rest';
 import migration008 from './008-remove_execution_rest_and_speed_stores';
 import migration009 from './009-add_user_strike';
 import migration010 from './010-migrate_workout_exercises';
+import migration011 from './011-add_exercise_note';
 import type { Migration } from './types';
 
 /**
@@ -34,6 +35,7 @@ const migrations: Migration[] = [
 	migration008,
 	migration009,
 	migration010,
+	migration011,
 ].sort((a, b) => a.version - b.version);
 
 if (migrations.length !== DATABASE_VERSION) {

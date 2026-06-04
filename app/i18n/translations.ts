@@ -184,6 +184,17 @@ const translations: Record<Locale, TranslationDict> = {
 		'countdownTimer.start': 'Start',
 		'countdownTimer.cancel': 'Cancel',
 
+		// Exercise notes
+		'exerciseNotes.openButton': 'Notes',
+		'exerciseNotes.title': 'Notes',
+		'exerciseNotes.placeholder': 'Write a note…',
+		'exerciseNotes.add': 'Add',
+		'exerciseNotes.edit': 'Edit',
+		'exerciseNotes.save': 'Save',
+		'exerciseNotes.cancel': 'Cancel',
+		'exerciseNotes.empty': 'No notes yet.',
+		'exerciseNotes.latestNote': 'Latest Note',
+
 		// Exercise types
 		'exerciseType.push': 'push',
 		'exerciseType.pull': 'pull',
@@ -399,6 +410,17 @@ const translations: Record<Locale, TranslationDict> = {
 		'countdownTimer.sec': 'Seg',
 		'countdownTimer.start': 'Iniciar',
 		'countdownTimer.cancel': 'Cancelar',
+
+		// Exercise notes
+		'exerciseNotes.openButton': 'Notas',
+		'exerciseNotes.title': 'Notas',
+		'exerciseNotes.placeholder': 'Escreva uma nota…',
+		'exerciseNotes.add': 'Adicionar',
+		'exerciseNotes.edit': 'Editar',
+		'exerciseNotes.save': 'Salvar',
+		'exerciseNotes.cancel': 'Cancelar',
+		'exerciseNotes.empty': 'Nenhuma nota ainda.',
+		'exerciseNotes.latestNote': 'Última Nota',
 
 		// Exercise types
 		'exerciseType.push': 'empurrar',
