@@ -18,6 +18,9 @@
     "react-hot-toast": "^2.6.0",
     "recharts": "^3.8.1"
   },
+  "pnpm": {
+    "neverBuiltDependencies": ["esbuild", "sharp", "unrs-resolver"]
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@testing-library/react": "^16.3.2",
