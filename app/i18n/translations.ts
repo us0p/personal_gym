@@ -176,6 +176,14 @@ const translations: Record<Locale, TranslationDict> = {
 		'speedAssistant.start': 'Start',
 		'speedAssistant.stop': 'Stop',
 
+		// Countdown timer
+		'countdownTimer.openButton': 'Timer',
+		'countdownTimer.title': 'Timer',
+		'countdownTimer.min': 'Min',
+		'countdownTimer.sec': 'Sec',
+		'countdownTimer.start': 'Start',
+		'countdownTimer.cancel': 'Cancel',
+
 		// Exercise types
 		'exerciseType.push': 'push',
 		'exerciseType.pull': 'pull',
@@ -383,6 +391,14 @@ const translations: Record<Locale, TranslationDict> = {
 		'speedAssistant.swingLabel': 'Segundos por oscilação (de um lado ao outro)',
 		'speedAssistant.start': 'Iniciar',
 		'speedAssistant.stop': 'Parar',
+
+		// Countdown timer
+		'countdownTimer.openButton': 'Cronômetro',
+		'countdownTimer.title': 'Cronômetro',
+		'countdownTimer.min': 'Min',
+		'countdownTimer.sec': 'Seg',
+		'countdownTimer.start': 'Iniciar',
+		'countdownTimer.cancel': 'Cancelar',
 
 		// Exercise types
 		'exerciseType.push': 'empurrar',

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import SpeedAssistant from '../../../components/speed-assistant';
+import CountdownTimer from '../../../components/countdown-timer';
 import Database from '../../../core/infra/database';
 import { Exercise } from '../../../core/entities/exercise/exercise';
 import type { ExerciseMetric } from '../../../core/entities/exercise/exercise';
@@ -42,6 +43,7 @@ export default function ExerciseLogPage() {
 	const [restMinutes, setRestMinutes] = useState(1);
 	const [restSeconds, setRestSeconds] = useState(30);
 	const [showAssistant, setShowAssistant] = useState(false);
+	const [showTimer, setShowTimer] = useState(false);
 	const formRef = useRef<HTMLFormElement>(null);
 
 	useEffect(() => {
@@ -128,6 +130,10 @@ export default function ExerciseLogPage() {
 
 	if (showAssistant) {
 		return <SpeedAssistant onClose={() => setShowAssistant(false)} />;
+	}
+
+	if (showTimer) {
+		return <CountdownTimer workoutName={workoutName} exerciseName={exerciseName} onClose={() => setShowTimer(false)} />;
 	}
 
 	const inputClass = 'flex-1 min-w-[100px] bg-zinc-800 text-white rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-zinc-600 placeholder:text-zinc-500 text-base';
@@ -275,6 +281,14 @@ export default function ExerciseLogPage() {
 					className="w-full bg-white text-black font-semibold rounded-2xl py-4 text-base"
 				>
 					{t('exerciseLog.speedAssistant')}
+				</button>
+
+				{/* Countdown timer */}
+				<button
+					onClick={() => setShowTimer(true)}
+					className="w-full bg-zinc-900 text-white font-semibold rounded-2xl py-4 text-base border border-zinc-700"
+				>
+					{t('countdownTimer.openButton')}
 				</button>
 
 				{/* Logged sets grouped by date */}

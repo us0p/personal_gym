@@ -22,6 +22,27 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+let _timerCancelled = false;
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "TIMER_START") {
+    _timerCancelled = false;
+    const { endTime, exerciseName } = event.data;
+    const delay = Math.max(0, endTime - Date.now());
+    setTimeout(() => {
+      if (_timerCancelled) return;
+      self.registration.showNotification("⏱ Timer done", {
+        body: exerciseName,
+        icon: "/icons/icon-192x192.png",
+        tag: "countdown-timer",
+      });
+    }, delay);
+  }
+  if (event.data?.type === "TIMER_CANCEL") {
+    _timerCancelled = true;
+  }
+});
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
