@@ -7,12 +7,12 @@ import type { ExportData } from '../data-port-service';
 let db: Database;
 let service: DataPortService;
 
-const sampleUser = { username: 'alice', sex: 'FEMALE', birthDate: '1996-01-15', height: 165 };
+const sampleUser = { username: 'alice', sex: 'FEMALE', birthDate: '1996-01-15', height: 165, strike: 0, maxStrike: 0 };
 const sampleWorkout = { name: 'Push Day', username: 'alice', exercises: [] };
 const sampleExercise = { name: 'Bench Press', type: 'push', bodyRegion: ['Chest'] };
 const sampleExecution = { workoutName: 'Push Day', exerciseName: 'Bench Press', timestamp: '2026-01-01T10:00:00Z', username: 'alice', repNumber: 8 };
 const sampleWeight = { username: 'alice', weight: 80, createdAt: '2026-01-01T10:00:00Z' };
-const sampleStrike = { username: 'alice', strikeCount: 5, maxStrike: 10, updatedAt: '2026-01-01T10:00:00Z' };
+const sampleWorkoutConfig = { username: 'alice', routineType: 'sequential', entries: [], tracking: null };
 
 beforeEach(async () => {
 	db = await Database.createInstance(new IDBFactory());
@@ -33,7 +33,7 @@ describe('exportAll()', () => {
 		expect(result).toHaveProperty('exercise');
 		expect(result).toHaveProperty('execution');
 		expect(result).toHaveProperty('userWeightProgression');
-		expect(result).toHaveProperty('userStrike');
+		expect(result).toHaveProperty('workoutConfig');
 	});
 
 	it('returns empty arrays for empty stores', async () => {
@@ -60,11 +60,11 @@ describe('exportAll()', () => {
 		expect(result.workout).toHaveLength(2);
 	});
 
-	it('exports userStrike records', async () => {
-		await db.put('userStrike', sampleStrike);
+	it('exports workoutConfig records', async () => {
+		await db.put('workoutConfig', sampleWorkoutConfig);
 		const result = await service.exportAll();
-		expect(result.userStrike).toHaveLength(1);
-		expect((result.userStrike![0] as typeof sampleStrike).strikeCount).toBe(5);
+		expect(result.workoutConfig).toHaveLength(1);
+		expect((result.workoutConfig![0] as typeof sampleWorkoutConfig).routineType).toBe('sequential');
 	});
 });
 
@@ -145,11 +145,11 @@ describe('importAll()', () => {
 		expect(all).toHaveLength(1);
 	});
 
-	it('imports userStrike records (upsert store)', async () => {
-		const data: ExportData = { userStrike: [sampleStrike] };
+	it('imports workoutConfig records (upsert store)', async () => {
+		const data: ExportData = { workoutConfig: [sampleWorkoutConfig] };
 		await service.importAll(data);
-		const strike = await db.get<typeof sampleStrike>('userStrike', 'alice');
-		expect(strike?.strikeCount).toBe(5);
+		const config = await db.get<typeof sampleWorkoutConfig>('workoutConfig', 'alice');
+		expect(config?.routineType).toBe('sequential');
 	});
 
 	it('skips stores whose value is not an array', async () => {

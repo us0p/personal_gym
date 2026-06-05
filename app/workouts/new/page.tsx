@@ -4,12 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Database from '../../core/infra/database';
-import { Workout, WeekDay } from '../../core/entities/workout/workout';
+import { Workout } from '../../core/entities/workout/workout';
 import { WorkoutRepository } from '../../core/entities/workout/workout-repository';
 import { Exercise, METRICS_BY_TYPE } from '../../core/entities/exercise/exercise';
 import { useUser } from '../../context/user-context';
 import { useLocale } from '../../context/locale-context';
-import { WEEK_DAYS } from '../../core/entities/workout/week-day-labels';
 import { inputClass } from '../../lib/styles';
 import { useWorkoutExerciseSelector } from '../use-workout-exercise-selector';
 
@@ -36,13 +35,11 @@ export default function NewWorkoutPage() {
 			return;
 		}
 		const form = new FormData(e.currentTarget);
-		const weekDays = form.getAll('weekDays') as WeekDay[];
 		const workoutExercises = getWorkoutExercises();
 		const workout: Workout = {
 			name: form.get('name') as string,
 			exercises: workoutExercises,
 			username: user.username,
-			weekDays: weekDays.length > 0 ? weekDays : undefined,
 		};
 		const db = await Database.getInstance();
 		const repo = new WorkoutRepository(db);
@@ -69,20 +66,6 @@ export default function NewWorkoutPage() {
 						placeholder={t('newWorkout.namePlaceholder')}
 						className={inputClass}
 					/>
-
-					<div>
-						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3 block">{t('newWorkout.daysOfWeek')}</label>
-						<div className="flex gap-2">
-							{WEEK_DAYS.map(({ value, label }) => (
-								<label key={value} className="flex-1 cursor-pointer">
-									<input type="checkbox" name="weekDays" value={value} className="sr-only peer" />
-									<div className="text-center py-2.5 rounded-xl bg-zinc-900 text-zinc-400 text-xs font-semibold peer-checked:bg-white peer-checked:text-black transition-colors">
-										{t(`weekDay.${label}`)}
-									</div>
-								</label>
-							))}
-						</div>
-					</div>
 
 					<div>
 						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3 block">{t('newWorkout.exercises')}</label>

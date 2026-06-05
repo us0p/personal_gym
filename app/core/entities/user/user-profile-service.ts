@@ -27,7 +27,7 @@ class UserProfileService {
 	 */
 	async create(input: UserProfileInput): Promise<void> {
 		const { weight, ...userData } = input;
-		await this.userRepo.create(userData);
+		await this.userRepo.create({ ...userData, strike: 0, maxStrike: 0 });
 		if (weight !== undefined) {
 			await this.weightRepo.add({
 				username: userData.username,

@@ -3,12 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Database from '../../../core/infra/database';
-import { Workout, WeekDay } from '../../../core/entities/workout/workout';
+import { Workout } from '../../../core/entities/workout/workout';
 import { WorkoutRepository } from '../../../core/entities/workout/workout-repository';
 import { WorkoutService } from '../../../core/services/workout-service';
 import { Exercise, METRICS_BY_TYPE } from '../../../core/entities/exercise/exercise';
 import { useLocale } from '../../../context/locale-context';
-import { WEEK_DAYS } from '../../../core/entities/workout/week-day-labels';
 import { inputClass } from '../../../lib/styles';
 import { useWorkoutExerciseSelector } from '../../use-workout-exercise-selector';
 
@@ -43,13 +42,11 @@ export default function EditWorkoutPage() {
 		if (!workout) return;
 		const form = new FormData(e.currentTarget);
 		const newName = (form.get('name') as string).trim();
-		const weekDays = form.getAll('weekDays') as WeekDay[];
 		const workoutExercises = getWorkoutExercises();
 		const updated: Workout = {
 			name: newName,
 			exercises: workoutExercises,
 			username: workout.username,
-			weekDays: weekDays.length > 0 ? weekDays : undefined,
 		};
 		const db = await Database.getInstance();
 		try {
@@ -92,26 +89,6 @@ export default function EditWorkoutPage() {
 						placeholder={t('editWorkout.namePlaceholder')}
 						className={inputClass}
 					/>
-
-					<div>
-						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3 block">{t('editWorkout.daysOfWeek')}</label>
-						<div className="flex gap-2">
-							{WEEK_DAYS.map(({ value, label }) => (
-								<label key={value} className="flex-1 cursor-pointer">
-									<input
-										type="checkbox"
-										name="weekDays"
-										value={value}
-										defaultChecked={workout.weekDays?.includes(value) ?? false}
-										className="sr-only peer"
-									/>
-									<div className="text-center py-2.5 rounded-xl bg-zinc-900 text-zinc-400 text-xs font-semibold peer-checked:bg-white peer-checked:text-black transition-colors">
-										{t(`weekDay.${label}`)}
-									</div>
-								</label>
-							))}
-						</div>
-					</div>
 
 					<div>
 						<label className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-3 block">{t('editWorkout.exercises')}</label>

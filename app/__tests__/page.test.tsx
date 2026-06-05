@@ -29,6 +29,11 @@ vi.mock('next/link', () => ({
 		React.createElement('a', { href }, children),
 }));
 
+vi.mock('next/navigation', () => ({
+	useRouter: vi.fn().mockReturnValue({ push: vi.fn(), back: vi.fn() }),
+	usePathname: vi.fn().mockReturnValue('/'),
+}));
+
 const mockUseUser = useUser as ReturnType<typeof vi.fn>;
 const mockUseLocale = useLocale as ReturnType<typeof vi.fn>;
 

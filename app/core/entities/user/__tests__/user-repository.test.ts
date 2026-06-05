@@ -13,6 +13,8 @@ const sampleUser = {
 	sex: SexOptions.FEMALE,
 	birthDate: new Date('1996-01-15'),
 	height: 165,
+	strike: 0,
+	maxStrike: 0,
 };
 
 beforeEach(async () => {
@@ -104,6 +106,22 @@ describe('delete()', () => {
 		await expect(
 			repo.create({ ...sampleUser, username: 'newuser' }),
 		).resolves.toBeUndefined();
+	});
+});
+
+// ─── updateStrike() ──────────────────────────────────────────────────────────
+
+describe('updateStrike()', () => {
+	it('updates strike and maxStrike on the user record', async () => {
+		await repo.create(sampleUser);
+		await repo.updateStrike('alice', 7, 10);
+		const user = await repo.get();
+		expect(user?.strike).toBe(7);
+		expect(user?.maxStrike).toBe(10);
+	});
+
+	it('throws UserNotFoundError when no user exists', async () => {
+		await expect(repo.updateStrike('alice', 1, 1)).rejects.toBeInstanceOf(UserNotFoundError);
 	});
 });
 

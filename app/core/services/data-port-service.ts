@@ -1,8 +1,8 @@
 import Database from '../infra/database';
 
-const EXPORT_STORES = ['users', 'workout', 'exercise', 'execution', 'userWeightProgression', 'userStrike', 'exerciseNote'] as const;
+const EXPORT_STORES = ['users', 'workout', 'exercise', 'execution', 'userWeightProgression', 'workoutConfig', 'exerciseNote'] as const;
 
-const UPSERT_STORES = ['users', 'execution', 'userWeightProgression', 'userStrike', 'exerciseNote'] as const;
+const UPSERT_STORES = ['users', 'execution', 'userWeightProgression', 'workoutConfig', 'exerciseNote'] as const;
 const APPEND_STORES = ['workout', 'exercise'] as const;
 
 type ExportStoreName = (typeof EXPORT_STORES)[number];

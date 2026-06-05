@@ -222,6 +222,24 @@ const translations: Record<Locale, TranslationDict> = {
 		'weekDay.Sat': 'Sat',
 		'weekDay.Sun': 'Sun',
 
+		// Routine configuration
+		'nav.routine': 'Routine',
+		'routine.title': 'Routine',
+		'routine.sequential': 'Sequential',
+		'routine.scheduled': 'Scheduled',
+		'routine.sequentialHint': 'Workouts execute one after another in order.',
+		'routine.scheduledHint': 'Every weekday is assigned a workout or rest.',
+		'routine.addWorkout': '+ Workout',
+		'routine.addRest': '+ Rest',
+		'routine.restDay': 'Rest Day',
+		'routine.selectWorkout': 'Select workout',
+		'routine.save': 'Save Routine',
+		'routine.noWorkouts': 'No workouts yet. Create workouts first.',
+		'routine.configMissing': 'Set up your routine to track your streak.',
+		'routine.configMissingCta': 'Configure Routine',
+		'routine.scheduledAllRequired': 'All 7 days must be assigned.',
+		'routine.saved': 'Routine saved.',
+
 		// Week days long (used in detail views)
 		'weekDayLong.MONDAY': 'Monday',
 		'weekDayLong.TUESDAY': 'Tuesday',
@@ -448,6 +466,24 @@ const translations: Record<Locale, TranslationDict> = {
 		'weekDay.Fri': 'Sex',
 		'weekDay.Sat': 'Sáb',
 		'weekDay.Sun': 'Dom',
+
+		// Routine configuration
+		'nav.routine': 'Rotina',
+		'routine.title': 'Rotina',
+		'routine.sequential': 'Sequencial',
+		'routine.scheduled': 'Agendado',
+		'routine.sequentialHint': 'Treinos executados um após o outro em ordem.',
+		'routine.scheduledHint': 'Cada dia da semana é associado a um treino ou descanso.',
+		'routine.addWorkout': '+ Treino',
+		'routine.addRest': '+ Descanso',
+		'routine.restDay': 'Dia de Descanso',
+		'routine.selectWorkout': 'Selecionar treino',
+		'routine.save': 'Salvar Rotina',
+		'routine.noWorkouts': 'Nenhum treino ainda. Crie treinos primeiro.',
+		'routine.configMissing': 'Configure sua rotina para acompanhar sua sequência.',
+		'routine.configMissingCta': 'Configurar Rotina',
+		'routine.scheduledAllRequired': 'Todos os 7 dias devem ser atribuídos.',
+		'routine.saved': 'Rotina salva.',
 
 		// Week days long
 		'weekDayLong.MONDAY': 'Segunda-feira',

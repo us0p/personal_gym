@@ -3,18 +3,38 @@ import { IDBFactory } from 'fake-indexeddb';
 import Database from '../../infra/database';
 import { ExecutionLogService } from '../execution-log-service';
 import { ExecutionRepository } from '../../entities/execution/execution-repository';
-import { UserStrikeRepository } from '../../entities/user/user-strike-repository';
+import { UserRepository } from '../../entities/user/user-repository';
+import { WorkoutConfigRepository } from '../../entities/workout-config/workout-config-repository';
+import { SexOptions } from '../../entities/user/user';
 
 let db: Database;
 let service: ExecutionLogService;
 let executionRepo: ExecutionRepository;
-let strikeRepo: UserStrikeRepository;
+let userRepo: UserRepository;
+let configRepo: WorkoutConfigRepository;
+
+const sampleUser = {
+	username: 'alice',
+	sex: SexOptions.FEMALE,
+	birthDate: new Date('1996-01-15'),
+	height: 165,
+	strike: 0,
+	maxStrike: 0,
+};
+
+const sequentialConfig = {
+	username: 'alice',
+	routineType: 'sequential' as const,
+	entries: [{ type: 'workout' as const, workoutName: 'Push Day' }],
+	tracking: null,
+};
 
 beforeEach(async () => {
 	db = await Database.createInstance(new IDBFactory());
 	service = new ExecutionLogService(db);
 	executionRepo = new ExecutionRepository(db);
-	strikeRepo = new UserStrikeRepository(db);
+	userRepo = new UserRepository(db);
+	configRepo = new WorkoutConfigRepository(db);
 });
 
 afterEach(() => {
@@ -92,22 +112,35 @@ describe('execution storage', () => {
 // ─── strike tracking ──────────────────────────────────────────────────────────
 
 describe('strike tracking', () => {
-	it('returns strikeIncreased=true on first log', async () => {
+	it('returns strikeIncreased=false when no workout config exists', async () => {
+		await userRepo.create(sampleUser);
+		const result = await service.log('alice', 'Push Day', 'Bench Press', ['reps'], { repNumber: 8 });
+		expect(result.strikeIncreased).toBe(false);
+		expect(result.strikeCount).toBe(0);
+	});
+
+	it('returns strikeIncreased=true on first log with matching sequential config', async () => {
+		await userRepo.create(sampleUser);
+		await configRepo.upsert(sequentialConfig);
 		const result = await service.log('alice', 'Push Day', 'Bench Press', ['reps'], { repNumber: 8 });
 		expect(result.strikeIncreased).toBe(true);
 		expect(result.strikeCount).toBe(1);
 	});
 
 	it('returns strikeIncreased=false when logging twice in the same day', async () => {
+		await userRepo.create(sampleUser);
+		await configRepo.upsert(sequentialConfig);
 		await service.log('alice', 'Push Day', 'Bench Press', ['reps'], { repNumber: 8 });
 		const result = await service.log('alice', 'Push Day', 'Bench Press', ['reps'], { repNumber: 10 });
 		expect(result.strikeIncreased).toBe(false);
 		expect(result.strikeCount).toBe(1);
 	});
 
-	it('persists the strike to the database', async () => {
+	it('persists the strike onto the user record', async () => {
+		await userRepo.create(sampleUser);
+		await configRepo.upsert(sequentialConfig);
 		await service.log('alice', 'Push Day', 'Bench Press', ['reps'], { repNumber: 8 });
-		const strike = await strikeRepo.get('alice');
-		expect(strike?.strikeCount).toBe(1);
+		const user = await userRepo.get();
+		expect(user?.strike).toBe(1);
 	});
 });

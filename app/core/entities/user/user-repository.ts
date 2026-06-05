@@ -62,6 +62,13 @@ class UserRepository {
 	async exists(): Promise<boolean> {
 		return (await this.get()) !== undefined;
 	}
+
+	/** Updates strike and maxStrike on the user record. Throws UserNotFoundError if no user exists. */
+	async updateStrike(username: string, strike: number, maxStrike: number): Promise<void> {
+		const user = await this.get();
+		if (!user || user.username !== username) throw new UserNotFoundError();
+		await this.db.put(USER_STORE, { ...user, strike, maxStrike });
+	}
 }
 
 export { UserRepository, UserAlreadyExistsError, UserNotFoundError };

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocale } from '../context/locale-context';
 
 function HomeIcon({ active }: { active: boolean }) {
@@ -42,25 +42,34 @@ function PersonIcon({ active }: { active: boolean }) {
 	);
 }
 
-function readLastWorkoutsPath(): string {
-	if (typeof window === 'undefined') return '/workouts';
-	try { return sessionStorage.getItem('lastWorkoutsPath') ?? '/workouts'; } catch { return '/workouts'; }
-}
-
 export default function Nav() {
 	const { t } = useLocale();
 	const pathname = usePathname();
+	// Start with the default so SSR and initial client render match.
+	// Populated from sessionStorage after mount to avoid hydration mismatch.
+	const [storedWorkoutsPath, setStoredWorkoutsPath] = useState('/workouts');
 
-	// Persist the deepest workouts path to sessionStorage so we can restore it
-	// when the user navigates away and comes back.
 	useEffect(() => {
-		if (pathname.startsWith('/workouts')) {
-			try { sessionStorage.setItem('lastWorkoutsPath', pathname); } catch {}
+		async function readFromStorage() {
+			try {
+				const saved = sessionStorage.getItem('lastWorkoutsPath');
+				if (saved) setStoredWorkoutsPath(saved);
+			} catch {}
 		}
+		void readFromStorage();
+	}, []);
+
+	useEffect(() => {
+		async function persist() {
+			if (pathname.startsWith('/workouts')) {
+				try { sessionStorage.setItem('lastWorkoutsPath', pathname); } catch {}
+				setStoredWorkoutsPath(pathname);
+			}
+		}
+		void persist();
 	}, [pathname]);
 
-	// Derive the workouts tab href: current path when inside workouts, last saved path otherwise.
-	const lastWorkoutsPath = pathname.startsWith('/workouts') ? pathname : readLastWorkoutsPath();
+	const lastWorkoutsPath = pathname.startsWith('/workouts') ? pathname : storedWorkoutsPath;
 
 	const tabs = [
 		{ href: '/', labelKey: 'nav.home', Icon: HomeIcon, exact: true },

@@ -9,6 +9,8 @@ interface User {
 	birthDate: Date;
 	height: number;
 	locale?: string;
+	strike: number;
+	maxStrike: number;
 }
 
 export { SexOptions };

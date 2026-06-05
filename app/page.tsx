@@ -6,9 +6,8 @@ import { useLocale } from './context/locale-context';
 import { LOCALES, type Locale } from './i18n/translations';
 import Database from './core/infra/database';
 import { UserWeightRepository } from './core/entities/user/user-weight-repository';
-import { UserStrikeRepository } from './core/entities/user/user-strike-repository';
+import { StrikeService } from './core/services/strike-service';
 import type { UserWeightEntry } from './core/entities/user/user-weight-entry';
-import type { UserStrike } from './core/entities/user/user-strike';
 import WeightChart from './components/weight-chart';
 import ExerciseProgressionChart from './components/exercise-progression-chart';
 
@@ -97,23 +96,26 @@ function LanguagePicker() {
 }
 
 export default function Dashboard() {
-	const { user } = useUser();
+	const { user, refreshUser } = useUser();
 	const { t } = useLocale();
 	const [weightHistory, setWeightHistory] = useState<UserWeightEntry[]>([]);
-	const [strike, setStrike] = useState<UserStrike | null>(null);
+	const appOpenProcessed = useRef(false);
 
 	useEffect(() => {
 		if (!user) return;
-		async function loadData() {
+		if (appOpenProcessed.current) return;
+		appOpenProcessed.current = true;
+
+		async function init() {
 			const db = await Database.getInstance();
-			const [entries, userStrike] = await Promise.all([
-				new UserWeightRepository(db).getAllByUser(user!.username),
-				new UserStrikeRepository(db).get(user!.username),
-			]);
+			const entries = await new UserWeightRepository(db).getAllByUser(user!.username);
 			setWeightHistory(entries);
-			setStrike(userStrike ?? null);
+			await new StrikeService(db).onAppOpen(user!.username);
+			await refreshUser();
 		}
-		loadData();
+		void init();
+	// refreshUser is stable from context, safe to include
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [user]);
 
 	return (
@@ -133,8 +135,8 @@ export default function Dashboard() {
 					<div className="flex items-center gap-4 bg-zinc-900 rounded-2xl px-5 py-4">
 						<div className="flex-1">
 							<p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold">{t('home.strike')}</p>
-							<p className="text-4xl font-bold tabular-nums mt-1">{t('home.strikeCount', { count: strike?.strikeCount ?? 0 })}</p>
-							<p className="text-xs text-zinc-500 mt-1">{t('home.maxStrike', { max: strike?.maxStrike ?? 0 })}</p>
+							<p className="text-4xl font-bold tabular-nums mt-1">{t('home.strikeCount', { count: user.strike })}</p>
+							<p className="text-xs text-zinc-500 mt-1">{t('home.maxStrike', { max: user.maxStrike })}</p>
 						</div>
 						<span className="text-4xl select-none">🔥</span>
 					</div>
