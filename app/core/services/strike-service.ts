@@ -39,7 +39,7 @@ function addDays(dateStr: string, days: number): string {
 
 /** Returns the weekday name for a 'YYYY-MM-DD' string. */
 function weekDayOf(dateStr: string): WeekDay {
-	const days: WeekDay[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+	const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'] as WeekDay[];
 	return days[parseLocalDate(dateStr).getDay()] as WeekDay;
 }
 

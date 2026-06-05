@@ -27,7 +27,7 @@ import { useUser } from '../context/user-context';
 import { useLocale } from '../context/locale-context';
 import { useToast } from '../context/toast-context';
 
-const WEEK_DAYS_ORDER: WeekDay[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+const WEEK_DAYS_ORDER = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'] as WeekDay[];
 
 type SequentialEntry = RoutineEntry & { _id: string };
 
